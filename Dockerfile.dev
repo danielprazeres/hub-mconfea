@@ -15,5 +15,5 @@ COPY env.sample .env
 
 COPY . .
 
-CMD ["gunicorn", "--config", "gunicorn-cfg.py", "run:app"]
-# CMD ["flask", "run", "--host=0.0.0.0", "--port=5005", "--reload"]
+# CMD ["gunicorn", "--config", "gunicorn-cfg.py", "run:app"]
+CMD ["flask", "run", "--host=0.0.0.0", "--port=5005", "--reload"]

@@ -36,3 +36,4 @@ node_modules
 yarn.lock
 
 README_bk.md
+.env

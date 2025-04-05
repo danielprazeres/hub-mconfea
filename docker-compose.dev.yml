@@ -1,9 +1,28 @@
 version: '3.8'
 
 services:
+  appseed-app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: appseed_app_dev
+    ports:
+      - "5005:5005"
+    volumes:
+      - .:/app
+    environment:
+      - FLASK_ENV=development
+      - FLASK_DEBUG=1
+    networks:
+      - web_network
+      - db_network
+    depends_on:
+      - mysql
+    command: flask run --host=0.0.0.0 --port=5005 --reload
+
   mysql:
     image: mysql:8.0
-    container_name: mysql
+    container_name: mysql_dev
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: root
@@ -17,35 +36,16 @@ services:
     networks:
       - db_network
 
-  appseed-app:
-    build: .
-    container_name: appseed_app
-    command: flask run --host=0.0.0.0 --port=5005
-    volumes:
-      - .:/app
-    environment:
-      - FLASK_APP=run.py
-      - FLASK_ENV=development
-      - FLASK_DEBUG=1
-    ports:
-      - "5005:5005"
-    depends_on:
-      - mysql
-    networks:
-      - db_network
-      - web_network
-
   nginx:
-    container_name: nginx
-    restart: always
-    image: "nginx:latest"
+    container_name: nginx_dev
+    image: nginx:latest
     ports:
       - "5085:5085"
     volumes:
       - ./nginx:/etc/nginx/conf.d
     networks:
       - web_network
-    depends_on: 
+    depends_on:
       - appseed-app
 
 networks:
