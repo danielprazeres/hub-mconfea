@@ -22,3 +22,4 @@ blinker==1.6.2
 # psycopg2-binary
 mysqlclient
 
+weasyprint==60.2

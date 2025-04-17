@@ -1,0 +1,221 @@
+{% extends "layouts/base.html" %}
+
+{% block title %} Detalhes do Cliente {% endblock %} 
+
+<!-- Specific Page CSS goes HERE  -->
+{% block stylesheets %}{% endblock stylesheets %}
+
+{% block content %}
+
+  <div class="content">
+    <div class="row">
+      <div class="col-md-12">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="title">Detalhes do Cliente</h5>
+            <div class="float-right">
+              <a href="{{ url_for('authentication_blueprint.customers_list') }}" class="btn btn-default btn-sm">Voltar</a>
+              <a href="{{ url_for('authentication_blueprint.customer_edit', id=customer.id) }}" class="btn btn-primary btn-sm">Editar</a>
+            </div>
+          </div>
+
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-12">
+                <h6 class="text-primary">Identificação Fiscal</h6>
+                <hr>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>Nome/Razão Social</label>
+                  <p class="form-control-static">{{ customer.nome_razao_social }}</p>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="form-group">
+                  <label>NIF</label>
+                  <p class="form-control-static">{{ customer.nif }}</p>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="form-group">
+                  <label>Tipo de Cliente</label>
+                  <p class="form-control-static">
+                    {% if customer.tipo_cliente == 'singular' %}
+                      Pessoa Singular
+                    {% else %}
+                      Pessoa Coletiva
+                    {% endif %}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="row mt-4">
+              <div class="col-md-12">
+                <h6 class="text-primary">Endereço Fiscal</h6>
+                <hr>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>Rua</label>
+                  <p class="form-control-static">{{ customer.rua }}</p>
+                </div>
+              </div>
+              <div class="col-md-2">
+                <div class="form-group">
+                  <label>Número</label>
+                  <p class="form-control-static">{{ customer.numero }}</p>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label>Complemento</label>
+                  <p class="form-control-static">{{ customer.complemento }}</p>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-3">
+                <div class="form-group">
+                  <label>Código Postal</label>
+                  <p class="form-control-static">{{ customer.codigo_postal }}</p>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="form-group">
+                  <label>Localidade</label>
+                  <p class="form-control-static">{{ customer.localidade }}</p>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="form-group">
+                  <label>Concelho</label>
+                  <p class="form-control-static">{{ customer.concelho }}</p>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="form-group">
+                  <label>Distrito</label>
+                  <p class="form-control-static">{{ customer.distrito }}</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="row mt-4">
+              <div class="col-md-12">
+                <h6 class="text-primary">Informações de Contato</h6>
+                <hr>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label>Telefone</label>
+                  <p class="form-control-static">{{ customer.telefone }}</p>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label>Email</label>
+                  <p class="form-control-static">{{ customer.email }}</p>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label>Pessoa de Contato</label>
+                  <p class="form-control-static">{{ customer.pessoa_contato }}</p>
+                </div>
+              </div>
+            </div>
+
+            {% if customer.tipo_cliente == 'coletiva' %}
+              <div class="row mt-4">
+                <div class="col-md-12">
+                  <h6 class="text-primary">Dados Empresariais</h6>
+                  <hr>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-4">
+                  <div class="form-group">
+                    <label>Razão Social</label>
+                    <p class="form-control-static">{{ customer.razao_social }}</p>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="form-group">
+                    <label>CAE</label>
+                    <p class="form-control-static">{{ customer.cae }}</p>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="form-group">
+                    <label>NIPC</label>
+                    <p class="form-control-static">{{ customer.nipc }}</p>
+                  </div>
+                </div>
+              </div>
+            {% endif %}
+
+            <div class="row mt-4">
+              <div class="col-md-12">
+                <h6 class="text-primary">Informações de Faturamento</h6>
+                <hr>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label>IBAN</label>
+                  <p class="form-control-static">{{ customer.iban }}</p>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label>Método de Pagamento</label>
+                  <p class="form-control-static">{{ customer.metodo_pagamento }}</p>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label>Condições de Pagamento</label>
+                  <p class="form-control-static">{{ customer.condicoes_pagamento }}</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="row mt-4">
+              <div class="col-md-12">
+                <h6 class="text-primary">Outras Informações</h6>
+                <hr>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>Data de Criação</label>
+                  <p class="form-control-static">{{ customer.data_criacao.strftime('%d/%m/%Y %H:%M') }}</p>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>Observações</label>
+                  <p class="form-control-static">{{ customer.observacoes }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+{% endblock content %}
+
+<!-- Specific Page JS goes HERE  -->
+{% block javascripts %}{% endblock javascripts %} 

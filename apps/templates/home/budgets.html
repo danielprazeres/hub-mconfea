@@ -1,0 +1,103 @@
+{% extends "layouts/base.html" %}
+
+{% block title %} Orçamentos {% endblock %}
+
+{% block content %}
+<div class="content">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="title">Orçamentos</h5>
+                        <a href="{{ url_for('home_blueprint.new_budget') }}" class="btn btn-primary btn-round">
+                            <i class="fas fa-plus me-2"></i>Novo Orçamento
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Número</th>
+                                    <th>Data</th>
+                                    <th>Cliente</th>
+                                    <th>Total</th>
+                                    <th>Status</th>
+                                    <th class="text-right">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for budget in budgets.items %}
+                                <tr>
+                                    <td>{{ budget.numero }}</td>
+                                    <td>{{ budget.data_doc.strftime('%d/%m/%Y') }}</td>
+                                    <td>
+                                        <div>
+                                            <span class="d-block">{{ budget.cliente.nome_razao_social }}</span>
+                                            <small class="text-muted">{{ budget.cliente.nif }}</small>
+                                        </div>
+                                    </td>
+                                    <td>{{ "%.2f"|format(budget.valor_total) }} {{ budget.moeda }}</td>
+                                    <td>
+                                        <span class="badge badge-{{ 'success' if budget.status == 'aprovado' 
+                                            else 'warning' if budget.status == 'rascunho' 
+                                            else 'danger' if budget.status == 'rejeitado'
+                                            else 'info' }}">
+                                            {{ budget.status }}
+                                        </span>
+                                    </td>
+                                    <td class="text-right">
+                                        <a href="{{ url_for('home_blueprint.view_budget', id=budget.id) }}" class="btn btn-link" title="Ver detalhes">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{{ url_for('home_blueprint.budget_pdf', id=budget.id) }}" class="btn btn-link" target="_blank" title="Gerar PDF">
+                                            <i class="fas fa-file-pdf"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    {% if budgets.pages > 1 %}
+                    <div class="d-flex justify-content-center mt-3">
+                        <nav aria-label="Page navigation">
+                            <ul class="pagination">
+                                {% if budgets.has_prev %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('home_blueprint.budgets', page=budgets.prev_num) }}">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </a>
+                                </li>
+                                {% endif %}
+                                
+                                {% for page_num in budgets.iter_pages() %}
+                                    {% if page_num %}
+                                        <li class="page-item {{ 'active' if page_num == budgets.page else '' }}">
+                                            <a class="page-link" href="{{ url_for('home_blueprint.budgets', page=page_num) }}">{{ page_num }}</a>
+                                        </li>
+                                    {% else %}
+                                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if budgets.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('home_blueprint.budgets', page=budgets.next_num) }}">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </a>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %} 

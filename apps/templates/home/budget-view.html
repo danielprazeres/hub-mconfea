@@ -1,0 +1,127 @@
+{% extends "layouts/base.html" %}
+
+{% block title %} Orçamento #{{ budget.numero }} {% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header pb-0 d-flex justify-content-between align-items-center">
+                    <h6>Orçamento #{{ budget.numero }}</h6>
+                    <div>
+                        <a href="{{ url_for('home_blueprint.budget_pdf', id=budget.id) }}" class="btn btn-sm btn-primary" target="_blank">
+                            <i class="fas fa-file-pdf me-2"></i>PDF
+                        </a>
+                        <a href="{{ url_for('home_blueprint.budgets') }}" class="btn btn-sm btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Voltar
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Informações do Cliente</h6>
+                            <p>
+                                <strong>Nome:</strong> {{ budget.cliente.nome }}<br>
+                                <strong>NIF:</strong> {{ budget.cliente.nif }}<br>
+                                <strong>Endereço:</strong> {{ budget.cliente.morada }}<br>
+                                <strong>Código Postal:</strong> {{ budget.cliente.cod_postal }} {{ budget.cliente.localidade }}<br>
+                                <strong>País:</strong> {{ budget.cliente.pais }}
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Informações do Documento</h6>
+                            <p>
+                                <strong>Número:</strong> {{ budget.numero }}<br>
+                                <strong>Data:</strong> {{ budget.data_doc.strftime('%d/%m/%Y') }}<br>
+                                <strong>Vencimento:</strong> {{ budget.data_venc.strftime('%d/%m/%Y') if budget.data_venc else 'N/A' }}<br>
+                                <strong>Moeda:</strong> {{ budget.moeda }} {% if budget.cambio != 1 %}(Câmbio: {{ "%.4f"|format(budget.cambio) }}){% endif %}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <h6>Itens do Orçamento</h6>
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Artigo</th>
+                                            <th>Descrição</th>
+                                            <th class="text-end">Quantidade</th>
+                                            <th class="text-end">Preço Unit.</th>
+                                            <th class="text-end">IVA (%)</th>
+                                            <th class="text-end">Desc. (%)</th>
+                                            <th class="text-end">Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for item in budget.items %}
+                                        <tr>
+                                            <td>{{ item.artigo }}</td>
+                                            <td>{{ item.descricao }}</td>
+                                            <td class="text-end">{{ "%.2f"|format(item.quantidade) }}</td>
+                                            <td class="text-end">{{ "%.2f"|format(item.preco_unitario) }} {{ budget.moeda }}</td>
+                                            <td class="text-end">{{ "%.2f"|format(item.iva) }}</td>
+                                            <td class="text-end">{{ "%.2f"|format(item.desconto) }}</td>
+                                            <td class="text-end">{{ "%.2f"|format(item.total) }} {{ budget.moeda }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                    <tfoot>
+                                        <tr>
+                                            <td colspan="6" class="text-end"><strong>Subtotal:</strong></td>
+                                            <td class="text-end">{{ "%.2f"|format(budget.subtotal) }} {{ budget.moeda }}</td>
+                                        </tr>
+                                        {% if budget.desc_global > 0 %}
+                                        <tr>
+                                            <td colspan="6" class="text-end"><strong>Desconto Global ({{ "%.2f"|format(budget.desc_global) }}%):</strong></td>
+                                            <td class="text-end">-{{ "%.2f"|format(budget.valor_desc_global) }} {{ budget.moeda }}</td>
+                                        </tr>
+                                        {% endif %}
+                                        {% if budget.desc_valor > 0 %}
+                                        <tr>
+                                            <td colspan="6" class="text-end"><strong>Desconto em Valor:</strong></td>
+                                            <td class="text-end">-{{ "%.2f"|format(budget.desc_valor) }} {{ budget.moeda }}</td>
+                                        </tr>
+                                        {% endif %}
+                                        <tr>
+                                            <td colspan="6" class="text-end"><strong>Total IVA:</strong></td>
+                                            <td class="text-end">{{ "%.2f"|format(budget.total_iva) }} {{ budget.moeda }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td colspan="6" class="text-end"><strong>Total:</strong></td>
+                                            <td class="text-end"><strong>{{ "%.2f"|format(budget.total) }} {{ budget.moeda }}</strong></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if budget.local_carga or budget.local_descarga or budget.prazo_pag %}
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <h6>Informações Adicionais</h6>
+                            <p>
+                                {% if budget.local_carga %}
+                                <strong>Local de Carga:</strong> {{ budget.local_carga }}<br>
+                                {% endif %}
+                                {% if budget.local_descarga %}
+                                <strong>Local de Descarga:</strong> {{ budget.local_descarga }}<br>
+                                {% endif %}
+                                {% if budget.prazo_pag %}
+                                <strong>Prazo de Pagamento:</strong> {{ budget.prazo_pag }}
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

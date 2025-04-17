@@ -6,12 +6,12 @@ ENV PYTHONUNBUFFERED 1
 ENV FLASK_APP run.py
 ENV FLASK_DEBUG 1
 
+WORKDIR /app
+
 COPY requirements.txt .
 
 RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
-
-COPY env.sample .env
 
 COPY . .
 

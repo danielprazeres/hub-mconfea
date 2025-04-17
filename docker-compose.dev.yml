@@ -13,12 +13,20 @@ services:
     environment:
       - FLASK_ENV=development
       - FLASK_DEBUG=1
+      - FLASK_APP=run.py
     networks:
       - web_network
       - db_network
     depends_on:
-      - mysql
-    command: flask run --host=0.0.0.0 --port=5005 --reload
+      mysql:
+        condition: service_healthy
+    command: >
+      sh -c "
+        flask db init || true &&
+        flask db migrate -m 'Initial migration' || true &&
+        flask db upgrade &&
+        flask run --host=0.0.0.0 --port=5005 --reload
+      "
 
   mysql:
     image: mysql:8.0
@@ -35,12 +43,17 @@ services:
       - mysql_data:/var/lib/mysql
     networks:
       - db_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
   nginx:
     container_name: nginx_dev
     image: nginx:latest
     ports:
-      - "5085:5085"
+      - "5085:80"
     volumes:
       - ./nginx:/etc/nginx/conf.d
     networks:

@@ -14,10 +14,12 @@ from flask_dance.contrib.github import github
 
 from apps import db, login_manager
 from apps.authentication import blueprint
-from apps.authentication.forms import LoginForm, CreateAccountForm
-from apps.authentication.models import Users
+from apps.authentication.forms import LoginForm, CreateAccountForm, CustomerForm
+from apps.authentication.models import Users, Customer
 
 from apps.authentication.util import verify_pass
+
+from datetime import datetime
 
 
 @blueprint.route('/')
@@ -131,3 +133,136 @@ def not_found_error(error):
 @blueprint.errorhandler(500)
 def internal_error(error):
     return render_template('home/page-500.html'), 500
+
+
+@blueprint.route('/customers', methods=['GET', 'POST'])
+def customers():
+    form = CustomerForm(request.form)
+    
+    if request.method == 'POST':
+        try:
+            customer = Customer(
+                nome_razao_social=request.form.get('nome_razao_social'),
+                nif=request.form.get('nif'),
+                tipo_cliente=request.form.get('tipo_cliente'),
+                rua=request.form.get('rua'),
+                numero=request.form.get('numero'),
+                complemento=request.form.get('complemento'),
+                codigo_postal=request.form.get('codigo_postal'),
+                localidade=request.form.get('localidade'),
+                concelho=request.form.get('concelho'),
+                distrito=request.form.get('distrito'),
+                pais=request.form.get('pais'),
+                telefone=request.form.get('telefone'),
+                email=request.form.get('email'),
+                pessoa_contato=request.form.get('pessoa_contato'),
+                razao_social=request.form.get('razao_social'),
+                cae=request.form.get('cae'),
+                nipc=request.form.get('nipc'),
+                iban=request.form.get('iban'),
+                metodo_pagamento=request.form.get('metodo_pagamento'),
+                condicoes_pagamento=request.form.get('condicoes_pagamento'),
+                observacoes=request.form.get('observacoes')
+            )
+            
+            db.session.add(customer)
+            db.session.commit()
+            
+            return render_template('home/customers.html',
+                               msg='Cliente cadastrado com sucesso!',
+                               form=form,
+                               current_time=datetime.now().strftime('%d/%m/%Y %H:%M:%S'))
+                               
+        except Exception as e:
+            db.session.rollback()
+            print(f"Erro ao cadastrar cliente: {str(e)}")  # Log do erro
+            return render_template('home/customers.html',
+                               msg=f'Erro ao cadastrar cliente: {str(e)}',
+                               form=form,
+                               current_time=datetime.now().strftime('%d/%m/%Y %H:%M:%S'))
+    
+    return render_template('home/customers.html',
+                       form=form,
+                       current_time=datetime.now().strftime('%d/%m/%Y %H:%M:%S'))
+
+@blueprint.route('/customers-list')
+def customers_list():
+    page = request.args.get('page', 1, type=int)
+    per_page = 10  # número de itens por página
+    
+    # Filtros
+    nome = request.args.get('nome', '')
+    nif = request.args.get('nif', '')
+    tipo_cliente = request.args.get('tipo_cliente', '')
+    localidade = request.args.get('localidade', '')
+    
+    # Query base
+    query = Customer.query
+    
+    # Aplicar filtros se fornecidos
+    if nome:
+        query = query.filter(Customer.nome_razao_social.ilike(f'%{nome}%'))
+    if nif:
+        query = query.filter(Customer.nif.ilike(f'%{nif}%'))
+    if tipo_cliente:
+        query = query.filter(Customer.tipo_cliente == tipo_cliente)
+    if localidade:
+        query = query.filter(Customer.localidade.ilike(f'%{localidade}%'))
+    
+    # Ordenar por nome
+    query = query.order_by(Customer.nome_razao_social)
+    
+    # Paginar resultados
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    customers = pagination.items
+    
+    return render_template('home/customers-list.html',
+                       customers=customers,
+                       pagination=pagination)
+
+@blueprint.route('/customer-details/<int:id>')
+def customer_details(id):
+    customer = Customer.query.get_or_404(id)
+    return render_template('home/customer-details.html', customer=customer)
+
+@blueprint.route('/customer-edit/<int:id>', methods=['GET', 'POST'])
+def customer_edit(id):
+    customer = Customer.query.get_or_404(id)
+    
+    if request.method == 'POST':
+        try:
+            # Atualizar dados do cliente
+            customer.nome_razao_social = request.form['nome_razao_social']
+            customer.nif = request.form['nif']
+            customer.tipo_cliente = request.form['tipo_cliente']
+            customer.rua = request.form['rua']
+            customer.numero = request.form['numero']
+            customer.complemento = request.form['complemento']
+            customer.codigo_postal = request.form['codigo_postal']
+            customer.localidade = request.form['localidade']
+            customer.concelho = request.form['concelho']
+            customer.distrito = request.form['distrito']
+            customer.telefone = request.form['telefone']
+            customer.email = request.form['email']
+            customer.pessoa_contato = request.form['pessoa_contato']
+            
+            if customer.tipo_cliente == 'coletiva':
+                customer.razao_social = request.form['razao_social']
+                customer.cae = request.form['cae']
+                customer.nipc = request.form['nipc']
+            
+            customer.iban = request.form['iban']
+            customer.metodo_pagamento = request.form['metodo_pagamento']
+            customer.condicoes_pagamento = request.form['condicoes_pagamento']
+            customer.observacoes = request.form['observacoes']
+            
+            db.session.commit()
+            return redirect(url_for('authentication_blueprint.customer_details', id=customer.id))
+            
+        except Exception as e:
+            db.session.rollback()
+            return render_template('home/customer-edit.html',
+                               customer=customer,
+                               error='Erro ao atualizar cliente. Por favor, tente novamente.')
+    
+    return render_template('home/customer-edit.html', customer=customer)

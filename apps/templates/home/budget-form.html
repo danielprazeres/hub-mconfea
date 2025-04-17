@@ -1,0 +1,449 @@
+{% extends "layouts/base.html" %}
+
+{% block title %} Novo Orçamento {% endblock %}
+
+<!-- Specific Page CSS goes HERE  -->
+{% block stylesheets %}{% endblock stylesheets %}
+
+{% block content %}
+
+<div class="content">
+  <div class="row">
+    <div class="col-md-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="title">Novo Orçamento</h5>
+        </div>
+
+        <div class="card-body">
+          <form id="budget-form">
+            <!-- Data e Cliente -->
+            <h6 class="heading-small text-muted mb-4">📅 Informações Básicas</h6>
+            <div class="row">
+              <div class="col-md-6 pr-md-1">
+                <div class="form-group">
+                  <label>Data do Documento *</label>
+                  <input type="date" class="form-control" id="data_doc" required>
+                </div>
+              </div>
+              <div class="col-md-6 pl-md-1">
+                <div class="form-group">
+                  <label>Data de Vencimento</label>
+                  <input type="date" class="form-control" id="data_venc">
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-12">
+                <div class="form-group">
+                  <label>Cliente *</label>
+                  <div class="input-group">
+                    <input type="text" class="form-control" id="cliente_search" placeholder="Pesquisar cliente por nome ou NIF..." required>
+                    <input type="hidden" id="cliente_id" name="cliente_id" required>
+                    <div class="input-group-append">
+                      <a href="{{ url_for('home_blueprint.route_template', template='customer-form') }}" class="btn btn-primary" target="_blank">
+                        <i class="fas fa-plus"></i>
+                      </a>
+                    </div>
+                  </div>
+                  <div id="cliente_info" class="mt-2" style="display: none;">
+                    <small class="text-muted">
+                      <strong>NIF:</strong> <span id="cliente_nif"></span><br>
+                      <strong>Endereço:</strong> <span id="cliente_endereco"></span><br>
+                      <strong>Localidade:</strong> <span id="cliente_localidade"></span>
+                    </small>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Moeda e Câmbio -->
+            <h6 class="heading-small text-muted mb-4 mt-4">💰 Moeda e Descontos</h6>
+            <div class="row">
+              <div class="col-md-4 pr-md-1">
+                <div class="form-group">
+                  <label>Moeda</label>
+                  <select class="form-control" id="moeda">
+                    <option value="EUR">EUR - Euro</option>
+                    <option value="USD">USD - Dólar Americano</option>
+                    <option value="GBP">GBP - Libra Esterlina</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-4 px-md-1">
+                <div class="form-group">
+                  <label>Câmbio</label>
+                  <input type="number" class="form-control" id="cambio" value="1" step="0.01">
+                </div>
+              </div>
+              <div class="col-md-4 pl-md-1">
+                <div class="form-group">
+                  <label>Desconto Global (%)</label>
+                  <input type="number" class="form-control" id="desc_global" value="0" min="0" max="100" step="0.01">
+                </div>
+              </div>
+            </div>
+
+            <!-- Itens do Orçamento -->
+            <h6 class="heading-small text-muted mb-4 mt-4">📝 Itens do Orçamento</h6>
+            <div class="table-responsive">
+              <table class="table" id="items-table">
+                <thead>
+                  <tr>
+                    <th>Descrição</th>
+                    <th style="width: 100px;">Qtd.</th>
+                    <th style="width: 150px;">Preço Unit.</th>
+                    <th style="width: 100px;">IVA (%)</th>
+                    <th style="width: 100px;">Desc. (%)</th>
+                    <th style="width: 150px;">Total</th>
+                    <th style="width: 50px;"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <div class="form-group mb-0">
+                        <div class="input-group">
+                          <input type="text" class="form-control item-description" placeholder="Descrição do item">
+                          <button type="button" class="btn btn-link text-primary" onclick="openServiceModal(this)">
+                            <i class="fas fa-search"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <input type="number" class="form-control item-quantity" value="1" min="1" step="1">
+                    </td>
+                    <td>
+                      <input type="number" class="form-control item-price" value="0" min="0" step="0.01">
+                    </td>
+                    <td>
+                      <input type="number" class="form-control item-vat" value="23" min="0" max="100" step="1">
+                    </td>
+                    <td>
+                      <input type="number" class="form-control item-discount" value="0" min="0" max="100" step="0.01">
+                    </td>
+                    <td>
+                      <input type="number" class="form-control item-total" value="0" readonly>
+                    </td>
+                    <td>
+                      <button type="button" class="btn btn-link text-danger" onclick="removeItem(this)">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td colspan="7">
+                      <button type="button" class="btn btn-link text-primary" onclick="addItem()">
+                        <i class="fas fa-plus"></i> Adicionar Item
+                      </button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td colspan="5" class="text-right">Subtotal:</td>
+                    <td><span id="subtotal">0.00</span> <span class="currency">EUR</span></td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td colspan="5" class="text-right">IVA Total:</td>
+                    <td><span id="total-vat">0.00</span> <span class="currency">EUR</span></td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td colspan="5" class="text-right">Desconto Global:</td>
+                    <td><span id="global-discount">0.00</span> <span class="currency">EUR</span></td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td colspan="5" class="text-right"><strong>Total:</strong></td>
+                    <td><strong><span id="total">0.00</span> <span class="currency">EUR</span></strong></td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+
+            <!-- Informações Adicionais -->
+            <h6 class="heading-small text-muted mb-4 mt-4">📌 Informações Adicionais</h6>
+            <div class="row">
+              <div class="col-md-6 pr-md-1">
+                <div class="form-group">
+                  <label>Local de Carga</label>
+                  <input type="text" class="form-control" id="local_carga">
+                </div>
+              </div>
+              <div class="col-md-6 pl-md-1">
+                <div class="form-group">
+                  <label>Local de Descarga</label>
+                  <input type="text" class="form-control" id="local_descarga">
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-12">
+                <div class="form-group">
+                  <label>Prazo de Pagamento</label>
+                  <select class="form-control" id="prazo_pag">
+                    <option value="0">Pronto Pagamento</option>
+                    <option value="30">30 dias</option>
+                    <option value="60">60 dias</option>
+                    <option value="90">90 dias</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="card-footer">
+              <button type="submit" class="btn btn-fill btn-primary">Salvar Orçamento</button>
+              <a href="{{ url_for('home_blueprint.budgets') }}" class="btn btn-fill btn-secondary">Cancelar</a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Serviços -->
+<div class="modal fade" id="serviceModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Selecionar Serviço</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <input type="text" class="form-control" id="service-search" placeholder="Pesquisar serviço...">
+        </div>
+        <div class="table-responsive">
+          <table class="table" id="services-table">
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Descrição</th>
+                <th>Tipo</th>
+                <th>Preço</th>
+                <th>IVA (%)</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for service in service_items %}
+              <tr>
+                <td>{{ service.codigo }}</td>
+                <td>{{ service.descricao }}</td>
+                <td>{{ service.tipo }}</td>
+                <td>{{ "%.2f"|format(service.preco_padrao) }}</td>
+                <td>{{ service.iva_padrao }}</td>
+                <td>
+                  <button type="button" class="btn btn-link" onclick="selectService('{{ service.id }}', '{{ service.descricao }}', {{ service.preco_padrao }}, {{ service.iva_padrao }})">
+                    <i class="fas fa-check"></i>
+                  </button>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock content %}
+
+<!-- Specific JS goes HERE --> 
+{% block javascripts %}
+<script>
+let currentItemRow = null;
+
+function openServiceModal(button) {
+  currentItemRow = $(button).closest('tr');
+  $('#serviceModal').modal('show');
+}
+
+function selectService(id, description, price, vat) {
+  if (currentItemRow) {
+    currentItemRow.find('.item-description').val(description);
+    currentItemRow.find('.item-price').val(price);
+    currentItemRow.find('.item-vat').val(vat);
+    currentItemRow.find('.item-service-id').val(id);
+    updateItemTotal(currentItemRow);
+  }
+  $('#serviceModal').modal('hide');
+}
+
+function addItem() {
+  const newRow = $('#items-table tbody tr:first').clone();
+  newRow.find('input').val('');
+  newRow.find('.item-quantity').val(1);
+  newRow.find('.item-vat').val(23);
+  newRow.find('.item-discount').val(0);
+  $('#items-table tbody').append(newRow);
+}
+
+function removeItem(button) {
+  const tbody = $('#items-table tbody');
+  if (tbody.children().length > 1) {
+    $(button).closest('tr').remove();
+  } else {
+    const row = $(button).closest('tr');
+    row.find('input').val('');
+    row.find('.item-quantity').val(1);
+    row.find('.item-vat').val(23);
+    row.find('.item-discount').val(0);
+  }
+  updateTotals();
+}
+
+function updateItemTotal(row) {
+  const quantity = parseFloat(row.find('.item-quantity').val()) || 0;
+  const price = parseFloat(row.find('.item-price').val()) || 0;
+  const vat = parseFloat(row.find('.item-vat').val()) || 0;
+  const discount = parseFloat(row.find('.item-discount').val()) || 0;
+  
+  const subtotal = quantity * price;
+  const discountAmount = subtotal * (discount / 100);
+  const vatAmount = (subtotal - discountAmount) * (vat / 100);
+  const total = subtotal - discountAmount + vatAmount;
+  
+  row.find('.item-total').val(total.toFixed(2));
+  updateTotals();
+}
+
+function updateTotals() {
+  let subtotal = 0;
+  let totalVat = 0;
+  
+  $('#items-table tbody tr').each(function() {
+    const quantity = parseFloat($(this).find('.item-quantity').val()) || 0;
+    const price = parseFloat($(this).find('.item-price').val()) || 0;
+    const vat = parseFloat($(this).find('.item-vat').val()) || 0;
+    const discount = parseFloat($(this).find('.item-discount').val()) || 0;
+    
+    const itemSubtotal = quantity * price;
+    const itemDiscountAmount = itemSubtotal * (discount / 100);
+    const itemVatAmount = (itemSubtotal - itemDiscountAmount) * (vat / 100);
+    
+    subtotal += itemSubtotal - itemDiscountAmount;
+    totalVat += itemVatAmount;
+  });
+  
+  const globalDiscount = parseFloat($('#desc_global').val()) || 0;
+  const globalDiscountAmount = subtotal * (globalDiscount / 100);
+  const total = subtotal - globalDiscountAmount + totalVat;
+  
+  $('#subtotal').text(subtotal.toFixed(2));
+  $('#total-vat').text(totalVat.toFixed(2));
+  $('#global-discount').text(globalDiscountAmount.toFixed(2));
+  $('#total').text(total.toFixed(2));
+}
+
+// Event listeners
+$(document).on('input', '.item-quantity, .item-price, .item-vat, .item-discount', function() {
+  updateItemTotal($(this).closest('tr'));
+});
+
+$('#desc_global').on('input', updateTotals);
+
+$('#moeda').on('change', function() {
+  $('.currency').text($(this).val());
+});
+
+$('#budget-form').on('submit', function(e) {
+  e.preventDefault();
+  
+  const items = [];
+  $('#items-table tbody tr').each(function() {
+    const description = $(this).find('.item-description').val();
+    if (description) {
+      items.push({
+        service_item_id: $(this).find('.item-service-id').val() || null,
+        descricao: description,
+        quantidade: parseFloat($(this).find('.item-quantity').val()),
+        preco_unitario: parseFloat($(this).find('.item-price').val()),
+        iva: parseFloat($(this).find('.item-vat').val()),
+        desconto: parseFloat($(this).find('.item-discount').val())
+      });
+    }
+  });
+  
+  const data = {
+    data_doc: $('#data_doc').val(),
+    data_venc: $('#data_venc').val() || null,
+    cliente_id: $('#cliente_id').val(),
+    moeda: $('#moeda').val(),
+    cambio: parseFloat($('#cambio').val()),
+    desc_global: parseFloat($('#desc_global').val()),
+    local_carga: $('#local_carga').val(),
+    local_descarga: $('#local_descarga').val(),
+    prazo_pag: $('#prazo_pag').val(),
+    items: items
+  };
+  
+  $.ajax({
+    url: "{{ url_for('home_blueprint.new_budget') }}",
+    method: 'POST',
+    contentType: 'application/json',
+    data: JSON.stringify(data),
+    success: function(response) {
+      if (response.success) {
+        window.location.href = "{{ url_for('home_blueprint.budgets') }}";
+      } else {
+        alert('Erro ao salvar orçamento: ' + response.error);
+      }
+    },
+    error: function() {
+      alert('Erro ao comunicar com o servidor');
+    }
+  });
+});
+
+// Inicialização
+$(document).ready(function() {
+  const today = new Date().toISOString().split('T')[0];
+  $('#data_doc').val(today);
+  
+  $('#service-search').on('keyup', function() {
+    const value = $(this).val().toLowerCase();
+    $('#services-table tbody tr').filter(function() {
+      $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1);
+    });
+  });
+
+  // Adiciona autocomplete para busca de clientes
+  $('#cliente_search').autocomplete({
+    source: function(request, response) {
+      $.get("{{ url_for('home_blueprint.search_customers') }}", { term: request.term })
+        .done(function(data) {
+          response(data.map(function(item) {
+            return {
+              label: item.nome + ' (' + item.nif + ')',
+              value: item.nome,
+              item: item
+            };
+          }));
+        });
+    },
+    minLength: 2,
+    select: function(event, ui) {
+      $('#cliente_id').val(ui.item.item.id);
+      $('#cliente_nif').text(ui.item.item.nif);
+      $('#cliente_endereco').text(ui.item.item.morada);
+      $('#cliente_localidade').text(ui.item.item.localidade);
+      $('#cliente_info').show();
+    }
+  });
+});
+</script>
+{% endblock javascripts %} 

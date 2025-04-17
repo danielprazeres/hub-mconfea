@@ -16,14 +16,14 @@ class Config(object):
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-    DB_ENGINE   = os.getenv('DB_ENGINE'   , None)
-    DB_USERNAME = os.getenv('DB_USERNAME' , None)
-    DB_PASS     = os.getenv('DB_PASS'     , None)
-    DB_HOST     = os.getenv('DB_HOST'     , None)
-    DB_PORT     = os.getenv('DB_PORT'     , None)
-    DB_NAME     = os.getenv('DB_NAME'     , None)
+    DB_ENGINE   = os.getenv('DB_ENGINE'   , 'mysql')
+    DB_USERNAME = os.getenv('DB_USERNAME' , 'hub_user')
+    DB_PASS     = os.getenv('DB_PASS'     , 'hub_pass')
+    DB_HOST     = os.getenv('DB_HOST'     , 'mysql')
+    DB_PORT     = os.getenv('DB_PORT'     , '3306')
+    DB_NAME     = os.getenv('DB_NAME'     , 'hub_mconfea')
 
-    USE_SQLITE  = True 
+    USE_SQLITE  = False 
 
     # try to set up a Relational DBMS
     if DB_ENGINE and DB_NAME and DB_USERNAME:
