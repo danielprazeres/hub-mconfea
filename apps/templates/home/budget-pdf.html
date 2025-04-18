@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Fatura #{{ budget.numero }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            color: #333;
+            margin: 30px;
+        }
+        .header, .footer {
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+        .section {
+            margin-bottom: 15px;
+        }
+        .section h2 {
+            font-size: 14px;
+            border-bottom: 1px solid #999;
+            margin-bottom: 8px;
+        }
+        .row {
+            display: flex;
+            justify-content: space-between;
+        }
+        .box {
+            width: 48%;
+        }
+        .box p {
+            margin: 2px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            margin-bottom: 15px;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 6px;
+            text-align: right;
+        }
+        th {
+            background-color: #f0f0f0;
+        }
+        td.desc, th.desc {
+            text-align: left;
+        }
+        .totals {
+            width: 300px;
+            margin-left: auto;
+        }
+        .totals td {
+            padding: 4px;
+        }
+        .footer {
+            font-size: 10px;
+            color: #777;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Fatura | FT SERIE1/{{ budget.numero }}</h1>
+        <p><strong>ATCUD:</strong> {{ budget.atcud }}</p>
+    </div>
+
+    <div class="section row">
+        <div class="box">
+            <h2>Emitente</h2>
+            <p>{{ empresa.nome }}</p>
+            <p>{{ empresa.endereco }}</p>
+            <p>{{ empresa.codigo_postal }} {{ empresa.localidade }}</p>
+            <p>Portugal</p>
+            <p><strong>Telefone:</strong> {{ empresa.telefone }}</p>
+            <p><strong>NIF:</strong> {{ empresa.nif }}</p>
+            <p><strong>IBAN:</strong> {{ empresa.iban }}</p>
+            <p><strong>Email:</strong> {{ empresa.email }}</p>
+        </div>
+        <div class="box">
+            <h2>Destinatário</h2>
+            <p>{{ budget.cliente.nome_razao_social }}</p>
+            <p>{{ budget.cliente.endereco }}</p>
+            <p>{{ budget.cliente.localidade }}</p>
+            <p>{{ budget.cliente.codigo_postal }} {{ budget.cliente.cidade }}</p>
+            <p>Portugal</p>
+            <p><strong>NIF:</strong> {{ budget.cliente.nif }}</p>
+        </div>
+    </div>
+
+    <div class="section row">
+        <div class="box">
+            <h2>Dados da Fatura</h2>
+            <p><strong>Data doc.:</strong> {{ budget.data_doc.strftime('%d/%m/%Y') }}</p>
+            <p><strong>Data venc.:</strong> {{ budget.data_venc.strftime('%d/%m/%Y') if budget.data_venc else 'N/A' }}</p>
+            <p><strong>Moeda:</strong> {{ budget.moeda }} {% if budget.cambio != 1 %}(Câmbio: {{ "%.4f"|format(budget.cambio) }}){% endif %}</p>
+            <p><strong>Status:</strong> {{ budget.status }}</p>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Itens</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Artigo</th>
+                    <th class="desc">Descrição</th>
+                    <th>IVA (%)</th>
+                    <th>Qtd.</th>
+                    <th>Preço Unit.</th>
+                    <th>Desc. (%)</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in budget.items %}
+                <tr>
+                    <td>{{ item.artigo }}</td>
+                    <td class="desc">{{ item.descricao }}</td>
+                    <td>{{ "%.2f"|format(item.iva) }}</td>
+                    <td>{{ "%.2f"|format(item.quantidade) }}</td>
+                    <td>{{ "%.2f"|format(item.preco_unitario) }}</td>
+                    <td>{{ "%.2f"|format(item.desconto) }}</td>
+                    <td>{{ "%.2f"|format(item.total) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>Resumo do IVA</h2>
+        <table class="totals">
+            <tr>
+                <td>Mercadorias e Serviços:</td>
+                <td>{{ "%.2f"|format(budget.subtotal) }}</td>
+            </tr>
+            {% if budget.desc_global > 0 %}
+            <tr>
+                <td>Desconto Global:</td>
+                <td>-{{ "%.2f"|format(budget.valor_desc_global) }}</td>
+            </tr>
+            {% endif %}
+            {% if budget.desc_valor > 0 %}
+            <tr>
+                <td>Desconto Valor:</td>
+                <td>-{{ "%.2f"|format(budget.desc_valor) }}</td>
+            </tr>
+            {% endif %}
+            <tr>
+                <td>IVA:</td>
+                <td>{{ "%.2f"|format(budget.total_iva) }}</td>
+            </tr>
+            <tr>
+                <td><strong>Valor Total:</strong></td>
+                <td><strong>{{ "%.2f"|format(budget.valor_total) }} {{ budget.moeda }}</strong></td>
+            </tr>
+        </table>
+    </div>
+
+    {% if budget.local_carga or budget.local_descarga %}
+    <div class="section">
+        <h2>Expedição</h2>
+        <p><strong>Local de carga:</strong> {{ budget.local_carga }} — {{ budget.data_doc.strftime('%d/%m/%Y') }} {{ budget.hora_carga }}</p>
+        <p><strong>Local de descarga:</strong> {{ budget.local_descarga }} — {{ budget.data_doc.strftime('%d/%m/%Y') }} {{ budget.hora_descarga }}</p>
+    </div>
+    {% endif %}
+
+    <div class="footer">
+        <p>Este documento foi gerado automaticamente pelo sistema.</p>
+        <p>Software certificado nº 2127/AT</p>
+    </div>
+</body>
+</html>

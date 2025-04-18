@@ -1,0 +1,132 @@
+{% extends "layouts/base.html" %}
+
+{% block title %} Meu Perfil {% endblock %}
+
+{% block content %}
+
+<div class="content">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="title">Meu Perfil</h5>
+                </div>
+                <div class="card-body">
+                    <form>
+                        <div class="row">
+                            <div class="col-md-6 pr-md-1">
+                                <div class="form-group">
+                                    <label>Username</label>
+                                    <input type="text" class="form-control" readonly value="{{ current_user.username if current_user.username else '' }}">
+                                </div>
+                            </div>
+                            <div class="col-md-6 pl-md-1">
+                                <div class="form-group">
+                                    <label>Email</label>
+                                    <input type="email" class="form-control" readonly value="{{ current_user.email if current_user.email else '' }}">
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="title">Alterar Senha</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('authentication_blueprint.change_password') }}" id="change-password-form">
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="form-group">
+                                    <label>Senha Atual</label>
+                                    <input type="password" class="form-control" name="current_password" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 pr-md-1">
+                                <div class="form-group">
+                                    <label>Nova Senha</label>
+                                    <input type="password" class="form-control" name="new_password" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6 pl-md-1">
+                                <div class="form-group">
+                                    <label>Confirmar Nova Senha</label>
+                                    <input type="password" class="form-control" name="confirm_password" required>
+                                </div>
+                            </div>
+                        </div>
+                        {% if password_msg %}
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="alert alert-{{ 'success' if password_success else 'danger' }}">
+                                    {{ password_msg }}
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        <div class="row">
+                            <div class="col-md-12">
+                                <button type="submit" class="btn btn-fill btn-primary">Alterar Senha</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card card-user">
+                <div class="card-body">
+                    <p class="card-text">
+                        <div class="author">
+                            <div class="block block-one"></div>
+                            <div class="block block-two"></div>
+                            <div class="block block-three"></div>
+                            <div class="block block-four"></div>
+                            <a href="javascript:void(0)">
+                                <img class="avatar" src="{{ config.ASSETS_ROOT }}/{{ current_user.profile_photo }}" alt="...">
+                                <h5 class="title">{{ current_user.username if current_user.username else '' }}</h5>
+                            </a>
+                            <p class="description">
+                                Membro desde {{ current_user.date_joined.strftime('%d/%m/%Y') if current_user.date_joined else 'N/A' }}
+                            </p>
+                        </div>
+                    </p>
+                    <form method="POST" action="{{ url_for('authentication_blueprint.upload_photo') }}" enctype="multipart/form-data" class="mt-3">
+                        <div class="form-group">
+                            <label for="photo" class="btn btn-sm btn-primary">Escolher Nova Foto</label>
+                            <input type="file" id="photo" name="photo" accept="image/*" style="display: none;" onchange="this.form.submit()">
+                        </div>
+                        {% if photo_msg %}
+                        <div class="alert alert-{{ 'success' if photo_success else 'danger' }} mt-3">
+                            {{ photo_msg }}
+                        </div>
+                        {% endif %}
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock content %}
+
+{% block javascripts %}
+<script>
+    $(document).ready(function() {
+        $('#change-password-form').on('submit', function(e) {
+            var newPass = $('input[name="new_password"]').val();
+            var confirmPass = $('input[name="confirm_password"]').val();
+            
+            if (newPass !== confirmPass) {
+                e.preventDefault();
+                alert('As senhas não coincidem. Por favor, verifique.');
+                return false;
+            }
+        });
+    });
+</script>
+{% endblock javascripts %} 

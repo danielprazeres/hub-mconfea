@@ -20,7 +20,7 @@ class Users(db.Model, UserMixin):
     username      = db.Column(db.String(64), unique=True)
     email         = db.Column(db.String(64), unique=True)
     password      = db.Column(db.LargeBinary)
-
+    profile_photo = db.Column(db.String(255), default='img/default-avatar.png')
     oauth_github  = db.Column(db.String(100), nullable=True)
 
     def __init__(self, **kwargs):
@@ -154,10 +154,18 @@ class Budget(db.Model):
     def __repr__(self):
         return f'<Budget {self.numero}>'
     
+    @property
+    def subtotal(self):
+        return sum(item.total for item in self.items)
+        
+    @property
+    def valor_desc_global(self):
+        return self.subtotal * (self.desc_global / 100)
+    
     def calcular_totais(self):
-        self.total_mercadorias = sum(item.total for item in self.items)
+        self.total_mercadorias = self.subtotal
         self.total_iva = sum(item.valor_iva for item in self.items)
-        self.total_desconto = self.desc_valor
+        self.total_desconto = self.desc_valor + self.valor_desc_global
         self.valor_total = self.total_mercadorias + self.total_iva - self.total_desconto
 
 class BudgetItem(db.Model):

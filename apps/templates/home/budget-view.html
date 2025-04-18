@@ -3,47 +3,67 @@
 {% block title %} Orçamento #{{ budget.numero }} {% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
+<div class="content">
     <div class="row">
-        <div class="col-12">
-            <div class="card mb-4">
-                <div class="card-header pb-0 d-flex justify-content-between align-items-center">
-                    <h6>Orçamento #{{ budget.numero }}</h6>
-                    <div>
-                        <a href="{{ url_for('home_blueprint.budget_pdf', id=budget.id) }}" class="btn btn-sm btn-primary" target="_blank">
-                            <i class="fas fa-file-pdf me-2"></i>PDF
-                        </a>
-                        <a href="{{ url_for('home_blueprint.budgets') }}" class="btn btn-sm btn-secondary">
-                            <i class="fas fa-arrow-left me-2"></i>Voltar
-                        </a>
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="title">Orçamento #{{ budget.numero }}</h5>
+                        <div>
+                            <div class="btn-group me-2">
+                                <button type="button" class="btn btn-success btn-sm update-status" data-status="aprovado" {% if budget.status == 'aprovado' %}disabled{% endif %}>
+                                    <i class="fas fa-check me-2"></i>Aprovar
+                                </button>
+                                <button type="button" class="btn btn-danger btn-sm update-status" data-status="rejeitado" {% if budget.status == 'rejeitado' %}disabled{% endif %}>
+                                    <i class="fas fa-times me-2"></i>Rejeitar
+                                </button>
+                                <button type="button" class="btn btn-info btn-sm update-status" data-status="faturado" {% if budget.status == 'faturado' %}disabled{% endif %}>
+                                    <i class="fas fa-file-invoice me-2"></i>Faturar
+                                </button>
+                            </div>
+                            <a href="{{ url_for('home_blueprint.budget_pdf', id=budget.id) }}" class="btn btn-primary btn-sm" target="_blank">
+                                <i class="fas fa-file-pdf me-2"></i>PDF
+                            </a>
+                            <a href="{{ url_for('home_blueprint.budgets') }}" class="btn btn-secondary btn-sm">
+                                <i class="fas fa-arrow-left me-2"></i>Voltar
+                            </a>
+                        </div>
                     </div>
                 </div>
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-6">
-                            <h6>Informações do Cliente</h6>
+                            <h6 class="heading-small text-muted mb-4">Informações do Cliente</h6>
                             <p>
-                                <strong>Nome:</strong> {{ budget.cliente.nome }}<br>
+                                <strong>Nome:</strong> {{ budget.cliente.nome_razao_social }}<br>
                                 <strong>NIF:</strong> {{ budget.cliente.nif }}<br>
-                                <strong>Endereço:</strong> {{ budget.cliente.morada }}<br>
-                                <strong>Código Postal:</strong> {{ budget.cliente.cod_postal }} {{ budget.cliente.localidade }}<br>
+                                <strong>Endereço:</strong> {{ budget.cliente.rua }}<br>
+                                <strong>Código Postal:</strong> {{ budget.cliente.codigo_postal }} {{ budget.cliente.localidade }}<br>
                                 <strong>País:</strong> {{ budget.cliente.pais }}
                             </p>
                         </div>
                         <div class="col-md-6">
-                            <h6>Informações do Documento</h6>
+                            <h6 class="heading-small text-muted mb-4">Informações do Documento</h6>
                             <p>
                                 <strong>Número:</strong> {{ budget.numero }}<br>
                                 <strong>Data:</strong> {{ budget.data_doc.strftime('%d/%m/%Y') }}<br>
                                 <strong>Vencimento:</strong> {{ budget.data_venc.strftime('%d/%m/%Y') if budget.data_venc else 'N/A' }}<br>
-                                <strong>Moeda:</strong> {{ budget.moeda }} {% if budget.cambio != 1 %}(Câmbio: {{ "%.4f"|format(budget.cambio) }}){% endif %}
+                                <strong>Moeda:</strong> {{ budget.moeda }} {% if budget.cambio != 1 %}(Câmbio: {{ "%.4f"|format(budget.cambio) }}){% endif %}<br>
+                                <strong>Status:</strong> 
+                                <span class="badge badge-{{ 'success' if budget.status == 'aprovado' 
+                                    else 'warning' if budget.status == 'rascunho' 
+                                    else 'danger' if budget.status == 'rejeitado'
+                                    else 'info' }}">
+                                    {{ budget.status }}
+                                </span>
                             </p>
                         </div>
                     </div>
 
                     <div class="row mt-4">
                         <div class="col-12">
-                            <h6>Itens do Orçamento</h6>
+                            <h6 class="heading-small text-muted mb-4">Itens do Orçamento</h6>
                             <div class="table-responsive">
                                 <table class="table">
                                     <thead>
@@ -93,7 +113,7 @@
                                         </tr>
                                         <tr>
                                             <td colspan="6" class="text-end"><strong>Total:</strong></td>
-                                            <td class="text-end"><strong>{{ "%.2f"|format(budget.total) }} {{ budget.moeda }}</strong></td>
+                                            <td class="text-end"><strong>{{ "%.2f"|format(budget.valor_total) }} {{ budget.moeda }}</strong></td>
                                         </tr>
                                     </tfoot>
                                 </table>
@@ -104,7 +124,7 @@
                     {% if budget.local_carga or budget.local_descarga or budget.prazo_pag %}
                     <div class="row mt-4">
                         <div class="col-12">
-                            <h6>Informações Adicionais</h6>
+                            <h6 class="heading-small text-muted mb-4">Informações Adicionais</h6>
                             <p>
                                 {% if budget.local_carga %}
                                 <strong>Local de Carga:</strong> {{ budget.local_carga }}<br>
@@ -124,4 +144,55 @@
         </div>
     </div>
 </div>
-{% endblock %} 
+{% endblock %}
+
+{% block javascripts %}
+<script>
+$(document).ready(function() {
+    $('.update-status').click(function() {
+        const button = $(this);
+        const newStatus = button.data('status');
+        
+        if (confirm(`Deseja realmente alterar o status do orçamento para ${newStatus}?`)) {
+            $.ajax({
+                url: "{{ url_for('home_blueprint.update_budget_status', id=budget.id) }}",
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ status: newStatus }),
+                success: function(response) {
+                    if (response.success) {
+                        // Atualiza o status na página
+                        const statusBadge = $('.badge');
+                        statusBadge.removeClass('badge-success badge-warning badge-danger badge-info');
+                        
+                        if (newStatus === 'aprovado') {
+                            statusBadge.addClass('badge-success');
+                        } else if (newStatus === 'rejeitado') {
+                            statusBadge.addClass('badge-danger');
+                        } else if (newStatus === 'faturado') {
+                            statusBadge.addClass('badge-info');
+                        } else {
+                            statusBadge.addClass('badge-warning');
+                        }
+                        
+                        statusBadge.text(newStatus);
+                        
+                        // Atualiza os botões
+                        $('.update-status').prop('disabled', false);
+                        button.prop('disabled', true);
+                        
+                        // Mostra mensagem de sucesso
+                        alert('Status atualizado com sucesso!');
+                    } else {
+                        alert('Erro ao atualizar status: ' + response.error);
+                    }
+                },
+                error: function() {
+                    alert('Erro ao comunicar com o servidor');
+                }
+            });
+        }
+    });
+});
+</script>
+{% endblock javascripts %} 

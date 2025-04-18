@@ -10,12 +10,58 @@
                 <div class="card-header">
                     <div class="d-flex justify-content-between align-items-center">
                         <h5 class="title">Orçamentos</h5>
-                        <a href="{{ url_for('home_blueprint.new_budget') }}" class="btn btn-primary btn-round">
-                            <i class="fas fa-plus me-2"></i>Novo Orçamento
+                        <a href="{{ url_for('home_blueprint.new_budget') }}" class="btn btn-primary btn-sm float-right">
+                            <i class="fas fa-plus me-2"></i> Novo Orçamento
                         </a>
                     </div>
                 </div>
                 <div class="card-body">
+                    <!-- Formulário de Filtros -->
+                    <form method="get" class="mb-4">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>Número</label>
+                                    <input type="text" class="form-control" name="numero" value="{{ numero }}" placeholder="Buscar por número...">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>Status</label>
+                                    <select class="form-control" name="status">
+                                        <option value="">Todos</option>
+                                        <option value="rascunho" {% if status == 'rascunho' %}selected{% endif %}>Rascunho</option>
+                                        <option value="aprovado" {% if status == 'aprovado' %}selected{% endif %}>Aprovado</option>
+                                        <option value="rejeitado" {% if status == 'rejeitado' %}selected{% endif %}>Rejeitado</option>
+                                        <option value="faturado" {% if status == 'faturado' %}selected{% endif %}>Faturado</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>Nome do Cliente</label>
+                                    <input type="text" class="form-control" name="nome_cliente" value="{{ nome_cliente }}" placeholder="Buscar por nome...">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>NIF do Cliente</label>
+                                    <input type="text" class="form-control" name="nif_cliente" value="{{ nif_cliente }}" placeholder="Buscar por NIF...">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-search me-2"></i>Filtrar
+                                </button>
+                                <a href="{{ url_for('home_blueprint.budgets') }}" class="btn btn-secondary btn-sm">
+                                    <i class="fas fa-times me-2"></i>Limpar Filtros
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+
                     <div class="table-responsive">
                         <table class="table">
                             <thead>

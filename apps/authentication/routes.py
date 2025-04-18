@@ -9,6 +9,8 @@ from flask_login import (
     login_user,
     logout_user
 )
+from werkzeug.utils import secure_filename
+import os
 
 from flask_dance.contrib.github import github
 
@@ -111,6 +113,110 @@ def register():
 def logout():
     logout_user()
     return redirect(url_for('authentication_blueprint.login'))
+
+
+@blueprint.route('/profile')
+def profile():
+    if not current_user.is_authenticated:
+        return redirect(url_for('authentication_blueprint.login'))
+    return render_template('home/profile.html',
+                       current_user=current_user,
+                       current_time=datetime.now().strftime('%d/%m/%Y %H:%M:%S'))
+
+
+@blueprint.route('/upload-photo', methods=['POST'])
+def upload_photo():
+    if not current_user.is_authenticated:
+        return redirect(url_for('authentication_blueprint.login'))
+    
+    if 'photo' not in request.files:
+        return render_template('home/profile.html',
+                           current_user=current_user,
+                           current_time=datetime.now().strftime('%d/%m/%Y %H:%M:%S'),
+                           photo_msg='Nenhum arquivo selecionado',
+                           photo_success=False)
+    
+    photo = request.files['photo']
+    
+    if photo.filename == '':
+        return render_template('home/profile.html',
+                           current_user=current_user,
+                           current_time=datetime.now().strftime('%d/%m/%Y %H:%M:%S'),
+                           photo_msg='Nenhum arquivo selecionado',
+                           photo_success=False)
+    
+    if photo:
+        try:
+            # Garante que o nome do arquivo é seguro
+            filename = secure_filename(photo.filename)
+            # Gera um nome único para o arquivo
+            unique_filename = f"{current_user.id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{filename}"
+            # Define o caminho para salvar a foto
+            upload_folder = os.path.join('apps', 'static', 'assets', 'img', 'profile_photos')
+            # Cria o diretório se não existir
+            os.makedirs(upload_folder, exist_ok=True)
+            # Caminho completo do arquivo
+            filepath = os.path.join(upload_folder, unique_filename)
+            # Salva o arquivo
+            photo.save(filepath)
+            # Atualiza o caminho no banco de dados
+            current_user.profile_photo = f'img/profile_photos/{unique_filename}'
+            db.session.commit()
+            
+            return render_template('home/profile.html',
+                               current_user=current_user,
+                               current_time=datetime.now().strftime('%d/%m/%Y %H:%M:%S'),
+                               photo_msg='Foto atualizada com sucesso',
+                               photo_success=True)
+        except Exception as e:
+            db.session.rollback()
+            return render_template('home/profile.html',
+                               current_user=current_user,
+                               current_time=datetime.now().strftime('%d/%m/%Y %H:%M:%S'),
+                               photo_msg=f'Erro ao atualizar foto: {str(e)}',
+                               photo_success=False)
+
+
+@blueprint.route('/change-password', methods=['POST'])
+def change_password():
+    if not current_user.is_authenticated:
+        return redirect(url_for('authentication_blueprint.login'))
+    
+    current_password = request.form.get('current_password')
+    new_password = request.form.get('new_password')
+    confirm_password = request.form.get('confirm_password')
+    
+    if not verify_pass(current_password, current_user.password):
+        return render_template('home/profile.html',
+                           current_user=current_user,
+                           current_time=datetime.now().strftime('%d/%m/%Y %H:%M:%S'),
+                           password_msg='Senha atual incorreta',
+                           password_success=False)
+    
+    if new_password != confirm_password:
+        return render_template('home/profile.html',
+                           current_user=current_user,
+                           current_time=datetime.now().strftime('%d/%m/%Y %H:%M:%S'),
+                           password_msg='As senhas não coincidem',
+                           password_success=False)
+    
+    try:
+        from apps.authentication.util import hash_pass
+        current_user.password = hash_pass(new_password)
+        db.session.commit()
+        
+        return render_template('home/profile.html',
+                           current_user=current_user,
+                           current_time=datetime.now().strftime('%d/%m/%Y %H:%M:%S'),
+                           password_msg='Senha alterada com sucesso',
+                           password_success=True)
+    except Exception as e:
+        db.session.rollback()
+        return render_template('home/profile.html',
+                           current_user=current_user,
+                           current_time=datetime.now().strftime('%d/%m/%Y %H:%M:%S'),
+                           password_msg='Erro ao alterar senha. Por favor, tente novamente.',
+                           password_success=False)
 
 
 # Errors

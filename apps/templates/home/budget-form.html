@@ -106,6 +106,7 @@
                       <div class="form-group mb-0">
                         <div class="input-group">
                           <input type="text" class="form-control item-description" placeholder="Descrição do item">
+                          <input type="hidden" class="item-service-id">
                           <button type="button" class="btn btn-link text-primary" onclick="openServiceModal(this)">
                             <i class="fas fa-search"></i>
                           </button>
@@ -286,6 +287,7 @@ function selectService(id, description, price, vat) {
 function addItem() {
   const newRow = $('#items-table tbody tr:first').clone();
   newRow.find('input').val('');
+  newRow.find('.item-service-id').val('');
   newRow.find('.item-quantity').val(1);
   newRow.find('.item-vat').val(23);
   newRow.find('.item-discount').val(0);

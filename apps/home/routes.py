@@ -7,14 +7,12 @@ from apps.home import blueprint
 from flask import render_template, request, jsonify
 from flask_login import login_required
 from jinja2 import TemplateNotFound
-from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from flask import make_response
-from weasyprint import HTML
+from weasyprint import HTML, CSS
 from sqlalchemy import or_
 from apps.authentication.models import Customer, ServiceItem, Budget, BudgetItem
-
-db = SQLAlchemy()
+from apps import db
 
 
 @blueprint.route('/index')
@@ -68,9 +66,39 @@ def budgets():
     page = request.args.get('page', 1, type=int)
     per_page = 10
     
-    budgets = Budget.query.order_by(Budget.data_criacao.desc()).paginate(page=page, per_page=per_page)
+    # Filtros
+    numero = request.args.get('numero', '')
+    status = request.args.get('status', '')
+    nome_cliente = request.args.get('nome_cliente', '')
+    nif_cliente = request.args.get('nif_cliente', '')
+    
+    # Query base
+    query = Budget.query
+    
+    # Aplicar filtros
+    if numero:
+        query = query.filter(Budget.numero.ilike(f'%{numero}%'))
+    if status:
+        query = query.filter(Budget.status == status)
+    if nome_cliente or nif_cliente:
+        query = query.join(Budget.cliente)
+        if nome_cliente:
+            query = query.filter(Customer.nome_razao_social.ilike(f'%{nome_cliente}%'))
+        if nif_cliente:
+            query = query.filter(Customer.nif.ilike(f'%{nif_cliente}%'))
+    
+    # Ordenação
+    query = query.order_by(Budget.data_criacao.desc())
+    
+    # Paginação
+    budgets = query.paginate(page=page, per_page=per_page)
+    
     return render_template('home/budgets.html', 
                          budgets=budgets,
+                         numero=numero,
+                         status=status,
+                         nome_cliente=nome_cliente,
+                         nif_cliente=nif_cliente,
                          segment='budgets')
 
 @blueprint.route('/budget/new', methods=['GET', 'POST'])
@@ -107,7 +135,7 @@ def new_budget():
         # Adicionar itens
         for item_data in data['items']:
             item = BudgetItem(
-                artigo=item_data['artigo'],
+                artigo=item_data.get('artigo'),
                 descricao=item_data['descricao'],
                 iva=float(item_data['iva']),
                 quantidade=float(item_data['quantidade']),
@@ -117,6 +145,9 @@ def new_budget():
             
             if item_data.get('service_item_id'):
                 item.service_item_id = item_data['service_item_id']
+                service_item = ServiceItem.query.get(item_data['service_item_id'])
+                if service_item:
+                    item.artigo = service_item.codigo
             
             item.calcular_valores()
             budget.items.append(item)
@@ -151,14 +182,27 @@ def view_budget(id):
 def budget_pdf(id):
     budget = Budget.query.get_or_404(id)
     
-    # Gerar PDF usando WeasyPrint
-    html = render_template('home/budget-pdf.html', budget=budget)
-    pdf = HTML(string=html).write_pdf()
+    empresa = {
+        "nome": "GCI - Global Construções e Instalações, LDA",
+        "endereco": "Rua Dom Afonso Henriques, Nº 515",
+        "codigo_postal": "3700-112",
+        "localidade": "Arrifana",
+        "telefone": "+351 256 101 722",
+        "email": "geral@gcinstalacoes.pt",
+        "nif": "513461491",
+        "iban": "PT50 0033 0000 00066120623 05"
+    }
+    
+    html = render_template('home/budget-pdf.html', budget=budget, empresa=empresa)
+    
+    # Criar o PDF usando WeasyPrint
+    pdf = HTML(string=html).write_pdf(
+        stylesheets=[CSS(string='@page { size: A4; margin: 1cm }')]
+    )
     
     response = make_response(pdf)
     response.headers['Content-Type'] = 'application/pdf'
-    response.headers['Content-Disposition'] = f'inline; filename=orcamento_{budget.numero}.pdf'
-    
+    response.headers['Content-Disposition'] = f'attachment; filename=orcamento_{budget.numero}.pdf'
     return response
 
 @blueprint.route('/api/services/search')
@@ -230,3 +274,27 @@ def search_customers():
         'localidade': c.localidade,
         'pais': c.pais
     } for c in customers])
+
+@blueprint.route('/budget/<int:id>/status', methods=['POST'])
+@login_required
+def update_budget_status(id):
+    budget = Budget.query.get_or_404(id)
+    data = request.get_json()
+    
+    if 'status' not in data:
+        return jsonify({'success': False, 'error': 'Status não fornecido'}), 400
+        
+    new_status = data['status']
+    if new_status not in ['rascunho', 'aprovado', 'rejeitado', 'faturado']:
+        return jsonify({'success': False, 'error': 'Status inválido'}), 400
+    
+    try:
+        budget.status = new_status
+        db.session.commit()
+        return jsonify({
+            'success': True,
+            'status': new_status
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
