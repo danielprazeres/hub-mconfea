@@ -84,7 +84,7 @@
                             Pessoa Coletiva
                           {% endif %}
                         </td>
-                        <td>{{ customer.localidade }}</td>
+                        <td>{{ customer.cidade or customer.localidade or '-' }}</td>
                         <td>{{ customer.telefone }}</td>
                         <td>{{ customer.email }}</td>
                         <td>

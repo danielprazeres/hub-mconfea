@@ -55,27 +55,41 @@
 
             <div class="row mt-4">
               <div class="col-md-12">
-                <h6 class="text-primary">Endereço Fiscal</h6>
+                <h6 class="text-primary">Morada de Faturação</h6>
                 <hr>
               </div>
             </div>
             <div class="row">
-              <div class="col-md-6">
+              <div class="col-md-12">
+                <div class="form-group">
+                  <label>Morada</label>
+                  <p class="form-control-static">{{ customer.morada or '-' }}</p>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-4">
                 <div class="form-group">
                   <label>Rua</label>
-                  <p class="form-control-static">{{ customer.rua }}</p>
+                  <p class="form-control-static">{{ customer.rua or '-' }}</p>
                 </div>
               </div>
               <div class="col-md-2">
                 <div class="form-group">
                   <label>Número</label>
-                  <p class="form-control-static">{{ customer.numero }}</p>
+                  <p class="form-control-static">{{ customer.numero or '-' }}</p>
+                </div>
+              </div>
+              <div class="col-md-2">
+                <div class="form-group">
+                  <label>Lote</label>
+                  <p class="form-control-static">{{ customer.lote or '-' }}</p>
                 </div>
               </div>
               <div class="col-md-4">
                 <div class="form-group">
                   <label>Complemento</label>
-                  <p class="form-control-static">{{ customer.complemento }}</p>
+                  <p class="form-control-static">{{ customer.complemento or '-' }}</p>
                 </div>
               </div>
             </div>
@@ -83,25 +97,25 @@
               <div class="col-md-3">
                 <div class="form-group">
                   <label>Código Postal</label>
-                  <p class="form-control-static">{{ customer.codigo_postal }}</p>
+                  <p class="form-control-static">{{ customer.codigo_postal or '-' }}</p>
                 </div>
               </div>
               <div class="col-md-3">
                 <div class="form-group">
-                  <label>Localidade</label>
-                  <p class="form-control-static">{{ customer.localidade }}</p>
-                </div>
-              </div>
-              <div class="col-md-3">
-                <div class="form-group">
-                  <label>Concelho</label>
-                  <p class="form-control-static">{{ customer.concelho }}</p>
+                  <label>Cidade</label>
+                  <p class="form-control-static">{{ customer.cidade or '-' }}</p>
                 </div>
               </div>
               <div class="col-md-3">
                 <div class="form-group">
                   <label>Distrito</label>
-                  <p class="form-control-static">{{ customer.distrito }}</p>
+                  <p class="form-control-static">{{ customer.distrito or '-' }}</p>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="form-group">
+                  <label>Localidade</label>
+                  <p class="form-control-static">{{ customer.localidade or '-' }}</p>
                 </div>
               </div>
             </div>

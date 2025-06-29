@@ -251,10 +251,13 @@ def customers():
                 nome_razao_social=request.form.get('nome_razao_social'),
                 nif=request.form.get('nif'),
                 tipo_cliente=request.form.get('tipo_cliente'),
+                morada=request.form.get('morada'),
                 rua=request.form.get('rua'),
                 numero=request.form.get('numero'),
+                lote=request.form.get('lote'),
                 complemento=request.form.get('complemento'),
                 codigo_postal=request.form.get('codigo_postal'),
+                cidade=request.form.get('cidade'),
                 localidade=request.form.get('localidade'),
                 concelho=request.form.get('concelho'),
                 distrito=request.form.get('distrito'),
@@ -300,7 +303,7 @@ def customers_list():
     nome = request.args.get('nome', '')
     nif = request.args.get('nif', '')
     tipo_cliente = request.args.get('tipo_cliente', '')
-    localidade = request.args.get('localidade', '')
+    cidade = request.args.get('cidade', '')
     
     # Query base
     query = Customer.query
@@ -312,8 +315,8 @@ def customers_list():
         query = query.filter(Customer.nif.ilike(f'%{nif}%'))
     if tipo_cliente:
         query = query.filter(Customer.tipo_cliente == tipo_cliente)
-    if localidade:
-        query = query.filter(Customer.localidade.ilike(f'%{localidade}%'))
+    if cidade:
+        query = query.filter(Customer.cidade.ilike(f'%{cidade}%'))
     
     # Ordenar por nome
     query = query.order_by(Customer.nome_razao_social)
@@ -341,10 +344,13 @@ def customer_edit(id):
             customer.nome_razao_social = request.form['nome_razao_social']
             customer.nif = request.form['nif']
             customer.tipo_cliente = request.form['tipo_cliente']
+            customer.morada = request.form.get('morada')
             customer.rua = request.form['rua']
             customer.numero = request.form['numero']
+            customer.lote = request.form.get('lote')
             customer.complemento = request.form['complemento']
             customer.codigo_postal = request.form['codigo_postal']
+            customer.cidade = request.form.get('cidade')
             customer.localidade = request.form['localidade']
             customer.concelho = request.form['concelho']
             customer.distrito = request.form['distrito']

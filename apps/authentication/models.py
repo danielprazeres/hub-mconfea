@@ -66,12 +66,15 @@ class Customer(db.Model):
     nif = db.Column(db.String(20), unique=True, nullable=False)
     tipo_cliente = db.Column(db.String(20), nullable=False)  # Pessoa Singular / Pessoa Coletiva
     
-    # Endereço Fiscal
+    # Endereço Fiscal / Morada de Faturação
+    morada = db.Column(db.String(200))  # Endereço completo
     rua = db.Column(db.String(200))
     numero = db.Column(db.String(20))
+    lote = db.Column(db.String(20))  # Campo solicitado
     complemento = db.Column(db.String(100))
     codigo_postal = db.Column(db.String(20))
-    localidade = db.Column(db.String(100))
+    cidade = db.Column(db.String(100))  # Renomeado de localidade
+    localidade = db.Column(db.String(100))  # Mantido para compatibilidade
     concelho = db.Column(db.String(100))
     distrito = db.Column(db.String(100))
     pais = db.Column(db.String(100))

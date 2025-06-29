@@ -1,6 +1,5 @@
 from apps import create_app, db
 from apps.authentication.models import Users, Customer, ServiceItem
-from apps.authentication.util import hash_pass
 from apps.config import config_dict
 
 app = create_app(config_dict['Debug'])
@@ -11,7 +10,7 @@ with app.app_context():
         admin = Users(
             username='admin',
             email='admin@mconfea.com',
-            password=hash_pass('admin123')  # Senha: admin123
+            password='admin123'  # Senha: admin123
         )
         db.session.add(admin)
     
