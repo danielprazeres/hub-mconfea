@@ -227,3 +227,175 @@ def criar_servicos_padrao():
         db.session.commit()
     except:
         db.session.rollback()
+
+class Intervention(db.Model):
+    """Modelo para registrar intervenções/manutenções realizadas"""
+    __tablename__ = 'interventions'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    cliente_id = db.Column(db.Integer, db.ForeignKey('Customers.id'), nullable=False)
+    data_intervencao = db.Column(db.DateTime, nullable=False)
+    
+    # Morada da obra
+    morada_obra = db.Column(db.String(300), nullable=False)
+    cidade_obra = db.Column(db.String(100))
+    codigo_postal_obra = db.Column(db.String(20))
+    
+    # Serviço executado
+    servico_executado = db.Column(db.Text, nullable=False)
+    tipo_servico = db.Column(db.String(100))  # Manutenção, Instalação, Reparação, etc.
+    
+    # Observações
+    observacoes = db.Column(db.Text)
+    
+    # Próxima manutenção
+    proxima_manutencao = db.Column(db.Date)  # Data sugerida para próxima manutenção
+    intervalo_manutencao = db.Column(db.Integer)  # Intervalo em meses
+    
+    # Técnico responsável
+    tecnico_responsavel = db.Column(db.String(100))
+    
+    # Status
+    status = db.Column(db.String(20), default='concluida')  # concluida, pendente, cancelada
+    
+    # Dados de criação
+    data_criacao = db.Column(db.DateTime, default=db.func.current_timestamp())
+    criado_por = db.Column(db.Integer, db.ForeignKey('Users.id'))
+    
+    # Relacionamentos
+    cliente = db.relationship('Customer', backref='interventions')
+    fotos = db.relationship('InterventionPhoto', backref='intervention', cascade='all, delete-orphan')
+    criador = db.relationship('Users')
+    
+    def __repr__(self):
+        return f'<Intervention {self.id} - {self.cliente.nome_razao_social}>'
+
+class InterventionPhoto(db.Model):
+    """Modelo para fotos das intervenções"""
+    __tablename__ = 'intervention_photos'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    intervention_id = db.Column(db.Integer, db.ForeignKey('interventions.id'), nullable=False)
+    
+    # Arquivo da foto
+    filename = db.Column(db.String(255), nullable=False)
+    original_filename = db.Column(db.String(255))
+    file_path = db.Column(db.String(500), nullable=False)
+    file_size = db.Column(db.Integer)
+    
+    # Metadados
+    descricao = db.Column(db.String(200))
+    tipo_foto = db.Column(db.String(50))  # antes, durante, depois, problema, solucao
+    
+    # Data
+    data_upload = db.Column(db.DateTime, default=db.func.current_timestamp())
+    uploaded_by = db.Column(db.Integer, db.ForeignKey('Users.id'))
+    
+    # Relacionamento
+    uploader = db.relationship('Users')
+    
+    def __repr__(self):
+        return f'<InterventionPhoto {self.filename}>'
+
+class MaintenanceAlert(db.Model):
+    """Modelo para avisos de próxima manutenção"""
+    __tablename__ = 'maintenance_alerts'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    cliente_id = db.Column(db.Integer, db.ForeignKey('Customers.id'), nullable=False)
+    intervention_id = db.Column(db.Integer, db.ForeignKey('interventions.id'))  # Opcional - pode ser baseado em intervenção
+    
+    # Dados do aviso
+    data_prevista = db.Column(db.Date, nullable=False)
+    tipo_manutencao = db.Column(db.String(100), nullable=False)
+    descricao = db.Column(db.Text)
+    prioridade = db.Column(db.String(20), default='normal')  # baixa, normal, alta, urgente
+    
+    # Notificações
+    notificar_email = db.Column(db.Boolean, default=True)
+    notificar_sms = db.Column(db.Boolean, default=False)
+    notificar_whatsapp = db.Column(db.Boolean, default=False)
+    
+    # Status e datas
+    status = db.Column(db.String(20), default='ativo')  # ativo, enviado, concluido, cancelado
+    data_criacao = db.Column(db.DateTime, default=db.func.current_timestamp())
+    data_notificacao = db.Column(db.DateTime)  # Quando foi enviada a notificação
+    data_conclusao = db.Column(db.DateTime)  # Quando foi marcada como concluída
+    
+    # Configurações de repetição
+    repetir = db.Column(db.Boolean, default=False)
+    intervalo_repeticao = db.Column(db.Integer)  # Em meses
+    
+    # Relacionamentos
+    cliente = db.relationship('Customer', backref='maintenance_alerts')
+    intervention = db.relationship('Intervention', backref='maintenance_alerts')
+    
+    def __repr__(self):
+        return f'<MaintenanceAlert {self.cliente.nome_razao_social} - {self.data_prevista}>'
+    
+    @property
+    def dias_restantes(self):
+        """Calcula quantos dias restam para a manutenção"""
+        from datetime import date
+        if self.data_prevista:
+            delta = self.data_prevista - date.today()
+            return delta.days
+        return None
+    
+    @property
+    def is_overdue(self):
+        """Verifica se a manutenção está atrasada"""
+        from datetime import date
+        return self.data_prevista < date.today() if self.data_prevista else False
+
+class MaintenanceRequest(db.Model):
+    """Modelo para solicitações de manutenção via API externa"""
+    __tablename__ = 'maintenance_requests'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    
+    # Dados do cliente (pode não estar cadastrado no sistema)
+    nome = db.Column(db.String(200), nullable=False)
+    email = db.Column(db.String(100), nullable=False)
+    telefone = db.Column(db.String(20))
+    nif = db.Column(db.String(20))  # Para tentar vincular com cliente existente
+    
+    # Dados da solicitação
+    morada_servico = db.Column(db.String(300), nullable=False)
+    cidade = db.Column(db.String(100))
+    codigo_postal = db.Column(db.String(20))
+    
+    # Detalhes do serviço
+    tipo_servico = db.Column(db.String(100), nullable=False)
+    descricao_problema = db.Column(db.Text)
+    data_preferida = db.Column(db.Date)
+    periodo_preferido = db.Column(db.String(50))  # manha, tarde, noite
+    
+    # Status
+    status = db.Column(db.String(20), default='pendente')  # pendente, agendado, concluido, cancelado
+    prioridade = db.Column(db.String(20), default='normal')
+    
+    # Dados de controle
+    data_solicitacao = db.Column(db.DateTime, default=db.func.current_timestamp())
+    ip_origem = db.Column(db.String(45))  # Para controle e segurança
+    user_agent = db.Column(db.String(500))
+    
+    # Vinculação posterior com cliente cadastrado
+    cliente_id = db.Column(db.Integer, db.ForeignKey('Customers.id'))
+    intervention_id = db.Column(db.Integer, db.ForeignKey('interventions.id'))  # Quando é convertida em intervenção
+    
+    # Relacionamentos
+    cliente = db.relationship('Customer', backref='maintenance_requests')
+    intervention = db.relationship('Intervention', backref='maintenance_request')
+    
+    def __repr__(self):
+        return f'<MaintenanceRequest {self.nome} - {self.tipo_servico}>'
+    
+    def try_link_customer(self):
+        """Tenta vincular a solicitação com um cliente existente pelo NIF"""
+        if self.nif and not self.cliente_id:
+            customer = Customer.query.filter_by(nif=self.nif).first()
+            if customer:
+                self.cliente_id = customer.id
+                return True
+        return False

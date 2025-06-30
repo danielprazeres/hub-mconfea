@@ -30,6 +30,24 @@
                         <p>Orçamentos</p>
                     </a>
                 </li>
+                <li class="{% if 'interventions' in segment %} active {% endif %}">
+                    <a href="{{ url_for('home_blueprint.interventions_list') }}">
+                        <i class="tim-icons icon-settings-gear-63"></i>
+                        <p>Intervenções</p>
+                    </a>
+                </li>
+                <li class="{% if 'maintenance-alerts' in segment %} active {% endif %}">
+                    <a href="{{ url_for('home_blueprint.maintenance_alerts') }}">
+                        <i class="tim-icons icon-bell-55"></i>
+                        <p>Avisos Manutenção</p>
+                    </a>
+                </li>
+                <li class="{% if 'maintenance-requests' in segment %} active {% endif %}">
+                    <a href="{{ url_for('home_blueprint.maintenance_requests') }}">
+                        <i class="tim-icons icon-world"></i>
+                        <p>Solicitações</p>
+                    </a>
+                </li>
                 <!--<li>
                     <a href="{{ url_for('authentication_blueprint.logout') }}">
                         <i class="tim-icons icon-button-power"></i>

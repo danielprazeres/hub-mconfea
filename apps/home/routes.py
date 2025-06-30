@@ -4,7 +4,7 @@ Copyright (c) 2019 - present AppSeed.us
 """
 
 from apps.home import blueprint
-from flask import render_template, request, jsonify
+from flask import render_template, request, jsonify, redirect, url_for
 from flask_login import login_required
 from jinja2 import TemplateNotFound
 from datetime import datetime
@@ -295,6 +295,388 @@ def update_budget_status(id):
             'success': True,
             'status': new_status
         })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# =====================================
+# ROTAS PARA INTERVENÇÕES
+# =====================================
+
+@blueprint.route('/interventions')
+@login_required
+def interventions_list():
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+    
+    # Filtros
+    cliente_nome = request.args.get('cliente_nome', '')
+    status = request.args.get('status', '')
+    data_inicio = request.args.get('data_inicio', '')
+    data_fim = request.args.get('data_fim', '')
+    
+    # Query base
+    from apps.authentication.models import Intervention
+    query = Intervention.query.join(Intervention.cliente)
+    
+    # Aplicar filtros
+    if cliente_nome:
+        query = query.filter(Customer.nome_razao_social.ilike(f'%{cliente_nome}%'))
+    if status:
+        query = query.filter(Intervention.status == status)
+    if data_inicio:
+        query = query.filter(Intervention.data_intervencao >= datetime.strptime(data_inicio, '%Y-%m-%d'))
+    if data_fim:
+        query = query.filter(Intervention.data_intervencao <= datetime.strptime(data_fim, '%Y-%m-%d'))
+    
+    # Ordenação
+    query = query.order_by(Intervention.data_intervencao.desc())
+    
+    # Paginação
+    interventions = query.paginate(page=page, per_page=per_page)
+    
+    return render_template('home/interventions-list.html', 
+                         interventions=interventions,
+                         cliente_nome=cliente_nome,
+                         status=status,
+                         data_inicio=data_inicio,
+                         data_fim=data_fim,
+                         segment='interventions')
+
+@blueprint.route('/intervention/new', methods=['GET', 'POST'])
+@login_required
+def new_intervention():
+    from apps.authentication.models import Intervention
+    from flask_login import current_user
+    
+    if request.method == 'POST':
+        try:
+            intervention = Intervention(
+                cliente_id=request.form['cliente_id'],
+                data_intervencao=datetime.strptime(request.form['data_intervencao'], '%Y-%m-%dT%H:%M'),
+                morada_obra=request.form['morada_obra'],
+                cidade_obra=request.form.get('cidade_obra'),
+                codigo_postal_obra=request.form.get('codigo_postal_obra'),
+                servico_executado=request.form['servico_executado'],
+                tipo_servico=request.form.get('tipo_servico'),
+                observacoes=request.form.get('observacoes'),
+                tecnico_responsavel=request.form.get('tecnico_responsavel'),
+                status=request.form.get('status', 'concluida'),
+                criado_por=current_user.id
+            )
+            
+            # Próxima manutenção se especificada
+            if request.form.get('proxima_manutencao'):
+                intervention.proxima_manutencao = datetime.strptime(request.form['proxima_manutencao'], '%Y-%m-%d').date()
+            
+            if request.form.get('intervalo_manutencao'):
+                intervention.intervalo_manutencao = int(request.form['intervalo_manutencao'])
+            
+            db.session.add(intervention)
+            db.session.commit()
+            
+            # Criar aviso de manutenção se especificado
+            if intervention.proxima_manutencao:
+                from apps.authentication.models import MaintenanceAlert
+                alert = MaintenanceAlert(
+                    cliente_id=intervention.cliente_id,
+                    intervention_id=intervention.id,
+                    data_prevista=intervention.proxima_manutencao,
+                    tipo_manutencao=f"Manutenção de {intervention.tipo_servico}",
+                    descricao=f"Manutenção programada baseada na intervenção de {intervention.data_intervencao.strftime('%d/%m/%Y')}",
+                    repetir=True if intervention.intervalo_manutencao else False,
+                    intervalo_repeticao=intervention.intervalo_manutencao
+                )
+                db.session.add(alert)
+                db.session.commit()
+            
+            return redirect(url_for('home_blueprint.view_intervention', id=intervention.id))
+            
+        except Exception as e:
+            db.session.rollback()
+            return render_template('home/intervention-form.html',
+                                 customers=Customer.query.all(),
+                                 error=f'Erro ao criar intervenção: {str(e)}',
+                                 segment='interventions')
+    
+    customers = Customer.query.all()
+    return render_template('home/intervention-form.html',
+                         customers=customers,
+                         segment='interventions')
+
+@blueprint.route('/intervention/<int:id>')
+@login_required
+def view_intervention(id):
+    from apps.authentication.models import Intervention
+    intervention = Intervention.query.get_or_404(id)
+    return render_template('home/intervention-view.html',
+                         intervention=intervention,
+                         segment='interventions')
+
+@blueprint.route('/intervention/<int:id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_intervention(id):
+    from apps.authentication.models import Intervention
+    intervention = Intervention.query.get_or_404(id)
+    
+    if request.method == 'POST':
+        try:
+            intervention.cliente_id = request.form['cliente_id']
+            intervention.data_intervencao = datetime.strptime(request.form['data_intervencao'], '%Y-%m-%dT%H:%M')
+            intervention.morada_obra = request.form['morada_obra']
+            intervention.cidade_obra = request.form.get('cidade_obra')
+            intervention.codigo_postal_obra = request.form.get('codigo_postal_obra')
+            intervention.servico_executado = request.form['servico_executado']
+            intervention.tipo_servico = request.form.get('tipo_servico')
+            intervention.observacoes = request.form.get('observacoes')
+            intervention.tecnico_responsavel = request.form.get('tecnico_responsavel')
+            intervention.status = request.form.get('status', 'concluida')
+            
+            if request.form.get('proxima_manutencao'):
+                intervention.proxima_manutencao = datetime.strptime(request.form['proxima_manutencao'], '%Y-%m-%d').date()
+            
+            if request.form.get('intervalo_manutencao'):
+                intervention.intervalo_manutencao = int(request.form['intervalo_manutencao'])
+            
+            db.session.commit()
+            return redirect(url_for('home_blueprint.view_intervention', id=intervention.id))
+            
+        except Exception as e:
+            db.session.rollback()
+            return render_template('home/intervention-edit.html',
+                                 intervention=intervention,
+                                 customers=Customer.query.all(),
+                                 error=f'Erro ao atualizar intervenção: {str(e)}',
+                                 segment='interventions')
+    
+    customers = Customer.query.all()
+    return render_template('home/intervention-edit.html',
+                         intervention=intervention,
+                         customers=customers,
+                         segment='interventions')
+
+# =====================================
+# ROTAS PARA AVISOS DE MANUTENÇÃO
+# =====================================
+
+@blueprint.route('/maintenance-alerts')
+@login_required
+def maintenance_alerts():
+    page = request.args.get('page', 1, type=int)
+    per_page = 15
+    
+    # Filtros
+    cliente_nome = request.args.get('cliente_nome', '')
+    status = request.args.get('status', '')
+    prioridade = request.args.get('prioridade', '')
+    vencidos = request.args.get('vencidos', '')
+    
+    # Query base
+    from apps.authentication.models import MaintenanceAlert
+    query = MaintenanceAlert.query.join(MaintenanceAlert.cliente)
+    
+    # Aplicar filtros
+    if cliente_nome:
+        query = query.filter(Customer.nome_razao_social.ilike(f'%{cliente_nome}%'))
+    if status:
+        query = query.filter(MaintenanceAlert.status == status)
+    if prioridade:
+        query = query.filter(MaintenanceAlert.prioridade == prioridade)
+    if vencidos == 'sim':
+        from datetime import date
+        query = query.filter(MaintenanceAlert.data_prevista < date.today())
+    
+    # Ordenação - vencidos primeiro, depois por data prevista
+    from datetime import date
+    from sqlalchemy import case
+    query = query.order_by(
+        case(
+            (MaintenanceAlert.data_prevista < date.today(), 0),
+            else_=1
+        ),
+        MaintenanceAlert.data_prevista.asc()
+    )
+    
+    # Paginação
+    alerts = query.paginate(page=page, per_page=per_page)
+    
+    return render_template('home/maintenance-alerts.html',
+                         alerts=alerts,
+                         cliente_nome=cliente_nome,
+                         status=status,
+                         prioridade=prioridade,
+                         vencidos=vencidos,
+                         segment='maintenance-alerts')
+
+@blueprint.route('/maintenance-alert/new', methods=['GET', 'POST'])
+@login_required
+def new_maintenance_alert():
+    from apps.authentication.models import MaintenanceAlert
+    
+    if request.method == 'POST':
+        try:
+            alert = MaintenanceAlert(
+                cliente_id=request.form['cliente_id'],
+                data_prevista=datetime.strptime(request.form['data_prevista'], '%Y-%m-%d').date(),
+                tipo_manutencao=request.form['tipo_manutencao'],
+                descricao=request.form.get('descricao'),
+                prioridade=request.form.get('prioridade', 'normal'),
+                notificar_email=bool(request.form.get('notificar_email')),
+                notificar_sms=bool(request.form.get('notificar_sms')),
+                notificar_whatsapp=bool(request.form.get('notificar_whatsapp')),
+                repetir=bool(request.form.get('repetir')),
+                intervalo_repeticao=int(request.form['intervalo_repeticao']) if request.form.get('intervalo_repeticao') else None
+            )
+            
+            db.session.add(alert)
+            db.session.commit()
+            
+            return redirect(url_for('home_blueprint.maintenance_alerts'))
+            
+        except Exception as e:
+            db.session.rollback()
+            return render_template('home/maintenance-alert-form.html',
+                                 customers=Customer.query.all(),
+                                 error=f'Erro ao criar aviso: {str(e)}',
+                                 segment='maintenance-alerts')
+    
+    customers = Customer.query.all()
+    return render_template('home/maintenance-alert-form.html',
+                         customers=customers,
+                         segment='maintenance-alerts')
+
+# =====================================
+# ROTAS PARA SOLICITAÇÕES EXTERNAS  
+# =====================================
+
+@blueprint.route('/maintenance-requests')
+@login_required
+def maintenance_requests():
+    page = request.args.get('page', 1, type=int)
+    per_page = 15
+    
+    # Filtros
+    nome = request.args.get('nome', '')
+    status = request.args.get('status', '')
+    tipo_servico = request.args.get('tipo_servico', '')
+    
+    # Query base
+    from apps.authentication.models import MaintenanceRequest
+    query = MaintenanceRequest.query
+    
+    # Aplicar filtros
+    if nome:
+        query = query.filter(MaintenanceRequest.nome.ilike(f'%{nome}%'))
+    if status:
+        query = query.filter(MaintenanceRequest.status == status)
+    if tipo_servico:
+        query = query.filter(MaintenanceRequest.tipo_servico.ilike(f'%{tipo_servico}%'))
+    
+    # Ordenação
+    query = query.order_by(MaintenanceRequest.data_solicitacao.desc())
+    
+    # Paginação
+    requests = query.paginate(page=page, per_page=per_page)
+    
+    return render_template('home/maintenance-requests.html',
+                         requests=requests,
+                         nome=nome,
+                         status=status,
+                         tipo_servico=tipo_servico,
+                         segment='maintenance-requests')
+
+@blueprint.route('/maintenance-request/<int:id>')
+@login_required
+def view_maintenance_request(id):
+    from apps.authentication.models import MaintenanceRequest
+    request_obj = MaintenanceRequest.query.get_or_404(id)
+    return render_template('home/maintenance-request-view.html',
+                         request_obj=request_obj,
+                         segment='maintenance-requests')
+
+# =====================================
+# API EXTERNA PARA SOLICITAÇÕES
+# =====================================
+
+@blueprint.route('/api/maintenance-request', methods=['POST'])
+def api_maintenance_request():
+    """API endpoint para solicitações externas de manutenção"""
+    try:
+        data = request.get_json()
+        
+        # Validação básica
+        required_fields = ['nome', 'email', 'morada_servico', 'tipo_servico']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({
+                    'success': False,
+                    'error': f'Campo obrigatório: {field}'
+                }), 400
+        
+        from apps.authentication.models import MaintenanceRequest
+        
+        # Criar solicitação
+        maintenance_request = MaintenanceRequest(
+            nome=data['nome'],
+            email=data['email'],
+            telefone=data.get('telefone'),
+            nif=data.get('nif'),
+            morada_servico=data['morada_servico'],
+            cidade=data.get('cidade'),
+            codigo_postal=data.get('codigo_postal'),
+            tipo_servico=data['tipo_servico'],
+            descricao_problema=data.get('descricao_problema'),
+            data_preferida=datetime.strptime(data['data_preferida'], '%Y-%m-%d').date() if data.get('data_preferida') else None,
+            periodo_preferido=data.get('periodo_preferido'),
+            prioridade=data.get('prioridade', 'normal'),
+            ip_origem=request.remote_addr,
+            user_agent=request.headers.get('User-Agent', '')
+        )
+        
+        # Tentar vincular com cliente existente
+        maintenance_request.try_link_customer()
+        
+        db.session.add(maintenance_request)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'id': maintenance_request.id,
+            'message': 'Solicitação recebida com sucesso. Entraremos em contato em breve.'
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': 'Erro interno do servidor'
+        }), 500
+
+@blueprint.route('/api/maintenance-request/<int:id>/status', methods=['PUT'])
+@login_required
+def update_maintenance_request_status(id):
+    """Atualizar status de solicitação de manutenção"""
+    from apps.authentication.models import MaintenanceRequest
+    
+    try:
+        request_obj = MaintenanceRequest.query.get_or_404(id)
+        data = request.get_json()
+        
+        if 'status' not in data:
+            return jsonify({'success': False, 'error': 'Status não fornecido'}), 400
+            
+        new_status = data['status']
+        if new_status not in ['pendente', 'agendado', 'concluido', 'cancelado']:
+            return jsonify({'success': False, 'error': 'Status inválido'}), 400
+        
+        request_obj.status = new_status
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'status': new_status
+        })
+        
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500

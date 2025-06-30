@@ -1,0 +1,168 @@
+{% extends "layouts/base.html" %}
+
+{% block title %} Intervenções {% endblock %} 
+
+<!-- Specific Page CSS goes HERE  -->
+{% block stylesheets %}{% endblock stylesheets %}
+
+{% block content %}
+
+  <div class="row">
+    <div class="col-md-12">
+      <div class="card">
+        <div class="card-header">
+          <div class="row">
+            <div class="col-8">
+              <h4 class="card-title"> Intervenções / Manutenções</h4>
+            </div>
+            <div class="col-4 text-right">
+              <a href="{{ url_for('home_blueprint.new_intervention') }}" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus"></i> Nova Intervenção
+              </a>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <!-- Filtros -->
+          <div class="row mb-4">
+            <div class="col-md-12">
+              <form method="get" class="row">
+                <div class="col-md-3">
+                  <label>Cliente</label>
+                  <input type="text" class="form-control form-control-sm" name="cliente_nome" 
+                         value="{{ cliente_nome }}" placeholder="Nome do cliente">
+                </div>
+                <div class="col-md-2">
+                  <label>Status</label>
+                  <select class="form-control form-control-sm" name="status">
+                    <option value="">Todos</option>
+                    <option value="concluida" {% if status == 'concluida' %}selected{% endif %}>Concluída</option>
+                    <option value="pendente" {% if status == 'pendente' %}selected{% endif %}>Pendente</option>
+                    <option value="cancelada" {% if status == 'cancelada' %}selected{% endif %}>Cancelada</option>
+                  </select>
+                </div>
+                <div class="col-md-3">
+                  <label>Data Início</label>
+                  <input type="date" class="form-control form-control-sm" name="data_inicio" value="{{ data_inicio }}">
+                </div>
+                <div class="col-md-3">
+                  <label>Data Fim</label>
+                  <input type="date" class="form-control form-control-sm" name="data_fim" value="{{ data_fim }}">
+                </div>
+                <div class="col-md-1">
+                  <label>&nbsp;</label>
+                  <button type="submit" class="btn btn-info btn-sm form-control">
+                    <i class="fas fa-search"></i>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- Tabela -->
+          <div class="table-responsive">
+            <table class="table tablesorter">
+              <thead class="text-primary">
+                <tr>
+                  <th>Data</th>
+                  <th>Cliente</th>
+                  <th>Tipo Serviço</th>
+                  <th>Técnico</th>
+                  <th>Status</th>
+                  <th>Próx. Manutenção</th>
+                  <th class="text-center">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% if interventions.items %}
+                  {% for intervention in interventions.items %}
+                    <tr>
+                      <td>{{ intervention.data_intervencao.strftime('%d/%m/%Y %H:%M') }}</td>
+                      <td>{{ intervention.cliente.nome_razao_social }}</td>
+                      <td>{{ intervention.tipo_servico or '-' }}</td>
+                      <td>{{ intervention.tecnico_responsavel or '-' }}</td>
+                      <td>
+                        {% if intervention.status == 'concluida' %}
+                          <span class="badge badge-success">Concluída</span>
+                        {% elif intervention.status == 'pendente' %}
+                          <span class="badge badge-warning">Pendente</span>
+                        {% else %}
+                          <span class="badge badge-danger">Cancelada</span>
+                        {% endif %}
+                      </td>
+                      <td>
+                        {% if intervention.proxima_manutencao %}
+                          {{ intervention.proxima_manutencao.strftime('%d/%m/%Y') }}
+                        {% else %}
+                          -
+                        {% endif %}
+                      </td>
+                      <td class="text-center">
+                        <a href="{{ url_for('home_blueprint.view_intervention', id=intervention.id) }}" 
+                           class="btn btn-link btn-icon btn-sm" title="Ver detalhes">
+                          <i class="fas fa-eye"></i>
+                        </a>
+                        <a href="{{ url_for('home_blueprint.edit_intervention', id=intervention.id) }}" 
+                           class="btn btn-link btn-icon btn-sm" title="Editar">
+                          <i class="fas fa-edit"></i>
+                        </a>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                {% else %}
+                  <tr>
+                    <td colspan="7" class="text-center">Nenhuma intervenção encontrada</td>
+                  </tr>
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Paginação -->
+          {% if interventions.pages > 1 %}
+            <nav aria-label="Page navigation">
+              <ul class="pagination justify-content-center">
+                {% if interventions.has_prev %}
+                  <li class="page-item">
+                    <a class="page-link" href="{{ url_for('home_blueprint.interventions_list', page=interventions.prev_num, 
+                       cliente_nome=cliente_nome, status=status, data_inicio=data_inicio, data_fim=data_fim) }}">Anterior</a>
+                  </li>
+                {% endif %}
+
+                {% for page in interventions.iter_pages() %}
+                  {% if page %}
+                    {% if page != interventions.page %}
+                      <li class="page-item">
+                        <a class="page-link" href="{{ url_for('home_blueprint.interventions_list', page=page,
+                           cliente_nome=cliente_nome, status=status, data_inicio=data_inicio, data_fim=data_fim) }}">{{ page }}</a>
+                      </li>
+                    {% else %}
+                      <li class="page-item active">
+                        <span class="page-link">{{ page }}</span>
+                      </li>
+                    {% endif %}
+                  {% else %}
+                    <li class="page-item disabled">
+                      <span class="page-link">...</span>
+                    </li>
+                  {% endif %}
+                {% endfor %}
+
+                {% if interventions.has_next %}
+                  <li class="page-item">
+                    <a class="page-link" href="{{ url_for('home_blueprint.interventions_list', page=interventions.next_num,
+                       cliente_nome=cliente_nome, status=status, data_inicio=data_inicio, data_fim=data_fim) }}">Próximo</a>
+                  </li>
+                {% endif %}
+              </ul>
+            </nav>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+{% endblock content %}
+
+<!-- Specific Page JS goes HERE  -->
+{% block javascripts %}{% endblock javascripts %} 

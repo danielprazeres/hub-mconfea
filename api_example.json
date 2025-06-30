@@ -1,0 +1,31 @@
+{
+  "exemplo_solicitacao_api": {
+    "url": "http://localhost:5085/api/maintenance-request",
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "nome": "João Silva",
+      "email": "joao.silva@email.com",
+      "telefone": "912345678",
+      "nif": "123456789",
+      "morada_servico": "Rua das Flores, 123",
+      "cidade": "Lisboa",
+      "codigo_postal": "1000-000",
+      "tipo_servico": "Manutenção",
+      "descricao_problema": "Problemas com a instalação elétrica do escritório",
+      "data_preferida": "2025-07-15",
+      "periodo_preferido": "manha"
+    }
+  },
+  "exemplo_resposta_sucesso": {
+    "success": true,
+    "id": 1,
+    "message": "Solicitação recebida com sucesso. Entraremos em contato em breve."
+  },
+  "exemplo_resposta_erro": {
+    "success": false,
+    "error": "Campo obrigatório: nome"
+  }
+} 

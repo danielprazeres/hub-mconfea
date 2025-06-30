@@ -1,0 +1,242 @@
+{% extends "layouts/base.html" %}
+
+{% block title %} Avisos de Manutenção {% endblock %} 
+
+<!-- Specific Page CSS goes HERE  -->
+{% block stylesheets %}{% endblock stylesheets %}
+
+{% block content %}
+
+  <div class="row">
+    <div class="col-md-12">
+      <div class="card">
+        <div class="card-header">
+          <div class="row">
+            <div class="col-8">
+              <h4 class="card-title"> Avisos de Próxima Manutenção</h4>
+            </div>
+            <div class="col-4 text-right">
+              <a href="{{ url_for('home_blueprint.new_maintenance_alert') }}" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus"></i> Novo Aviso
+              </a>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <!-- Filtros -->
+          <div class="row mb-4">
+            <div class="col-md-12">
+              <form method="get" class="row">
+                <div class="col-md-3">
+                  <label>Cliente</label>
+                  <input type="text" class="form-control form-control-sm" name="cliente_nome" 
+                         value="{{ cliente_nome }}" placeholder="Nome do cliente">
+                </div>
+                <div class="col-md-2">
+                  <label>Status</label>
+                  <select class="form-control form-control-sm" name="status">
+                    <option value="">Todos</option>
+                    <option value="ativo" {% if status == 'ativo' %}selected{% endif %}>Ativo</option>
+                    <option value="enviado" {% if status == 'enviado' %}selected{% endif %}>Enviado</option>
+                    <option value="concluido" {% if status == 'concluido' %}selected{% endif %}>Concluído</option>
+                    <option value="cancelado" {% if status == 'cancelado' %}selected{% endif %}>Cancelado</option>
+                  </select>
+                </div>
+                <div class="col-md-2">
+                  <label>Prioridade</label>
+                  <select class="form-control form-control-sm" name="prioridade">
+                    <option value="">Todas</option>
+                    <option value="baixa" {% if prioridade == 'baixa' %}selected{% endif %}>Baixa</option>
+                    <option value="normal" {% if prioridade == 'normal' %}selected{% endif %}>Normal</option>
+                    <option value="alta" {% if prioridade == 'alta' %}selected{% endif %}>Alta</option>
+                    <option value="urgente" {% if prioridade == 'urgente' %}selected{% endif %}>Urgente</option>
+                  </select>
+                </div>
+                <div class="col-md-2">
+                  <label>Vencidos</label>
+                  <select class="form-control form-control-sm" name="vencidos">
+                    <option value="">Todos</option>
+                    <option value="sim" {% if vencidos == 'sim' %}selected{% endif %}>Apenas Vencidos</option>
+                  </select>
+                </div>
+                <div class="col-md-1">
+                  <label>&nbsp;</label>
+                  <button type="submit" class="btn btn-info btn-sm form-control">
+                    <i class="fas fa-search"></i>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- Tabela -->
+          <div class="table-responsive">
+            <table class="table tablesorter">
+              <thead class="text-primary">
+                <tr>
+                  <th>Cliente</th>
+                  <th>Tipo Manutenção</th>
+                  <th>Data Prevista</th>
+                  <th>Dias Restantes</th>
+                  <th>Prioridade</th>
+                  <th>Status</th>
+                  <th class="text-center">Notificações</th>
+                  <th class="text-center">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% if alerts.items %}
+                  {% for alert in alerts.items %}
+                    <tr {% if alert.is_overdue %}class="table-warning"{% endif %}>
+                      <td>{{ alert.cliente.nome_razao_social }}</td>
+                      <td>{{ alert.tipo_manutencao }}</td>
+                      <td>{{ alert.data_prevista.strftime('%d/%m/%Y') }}</td>
+                      <td>
+                        {% if alert.dias_restantes is not none %}
+                          {% if alert.dias_restantes < 0 %}
+                            <span class="badge badge-danger">{{ alert.dias_restantes * -1 }} dias em atraso</span>
+                          {% elif alert.dias_restantes == 0 %}
+                            <span class="badge badge-warning">Hoje</span>
+                          {% elif alert.dias_restantes <= 7 %}
+                            <span class="badge badge-warning">{{ alert.dias_restantes }} dias</span>
+                          {% else %}
+                            <span class="badge badge-info">{{ alert.dias_restantes }} dias</span>
+                          {% endif %}
+                        {% endif %}
+                      </td>
+                      <td>
+                        {% if alert.prioridade == 'urgente' %}
+                          <span class="badge badge-danger">Urgente</span>
+                        {% elif alert.prioridade == 'alta' %}
+                          <span class="badge badge-warning">Alta</span>
+                        {% elif alert.prioridade == 'baixa' %}
+                          <span class="badge badge-secondary">Baixa</span>
+                        {% else %}
+                          <span class="badge badge-info">Normal</span>
+                        {% endif %}
+                      </td>
+                      <td>
+                        {% if alert.status == 'ativo' %}
+                          <span class="badge badge-success">Ativo</span>
+                        {% elif alert.status == 'enviado' %}
+                          <span class="badge badge-info">Enviado</span>
+                        {% elif alert.status == 'concluido' %}
+                          <span class="badge badge-secondary">Concluído</span>
+                        {% else %}
+                          <span class="badge badge-danger">Cancelado</span>
+                        {% endif %}
+                      </td>
+                      <td class="text-center">
+                        {% if alert.notificar_email %}<i class="fas fa-envelope text-info" title="Email"></i> {% endif %}
+                        {% if alert.notificar_sms %}<i class="fas fa-sms text-success" title="SMS"></i> {% endif %}
+                        {% if alert.notificar_whatsapp %}<i class="fab fa-whatsapp text-success" title="WhatsApp"></i> {% endif %}
+                        {% if alert.repetir %}<i class="fas fa-redo text-warning" title="Repetir a cada {{ alert.intervalo_repeticao }} meses"></i>{% endif %}
+                      </td>
+                      <td class="text-center">
+                        <div class="btn-group" role="group">
+                          <button type="button" class="btn btn-link btn-icon btn-sm" title="Ver detalhes" 
+                                  onclick="viewAlert({{ alert.id }})">
+                            <i class="fas fa-eye"></i>
+                          </button>
+                          {% if alert.status == 'ativo' %}
+                            <button type="button" class="btn btn-link btn-icon btn-sm text-success" title="Marcar como concluído"
+                                    onclick="updateStatus({{ alert.id }}, 'concluido')">
+                              <i class="fas fa-check"></i>
+                            </button>
+                            <button type="button" class="btn btn-link btn-icon btn-sm text-info" title="Marcar como enviado"
+                                    onclick="updateStatus({{ alert.id }}, 'enviado')">
+                              <i class="fas fa-paper-plane"></i>
+                            </button>
+                          {% endif %}
+                        </div>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                {% else %}
+                  <tr>
+                    <td colspan="8" class="text-center">Nenhum aviso de manutenção encontrado</td>
+                  </tr>
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Paginação -->
+          {% if alerts.pages > 1 %}
+            <nav aria-label="Page navigation">
+              <ul class="pagination justify-content-center">
+                {% if alerts.has_prev %}
+                  <li class="page-item">
+                    <a class="page-link" href="{{ url_for('home_blueprint.maintenance_alerts', page=alerts.prev_num, 
+                       cliente_nome=cliente_nome, status=status, prioridade=prioridade, vencidos=vencidos) }}">Anterior</a>
+                  </li>
+                {% endif %}
+
+                {% for page in alerts.iter_pages() %}
+                  {% if page %}
+                    {% if page != alerts.page %}
+                      <li class="page-item">
+                        <a class="page-link" href="{{ url_for('home_blueprint.maintenance_alerts', page=page,
+                           cliente_nome=cliente_nome, status=status, prioridade=prioridade, vencidos=vencidos) }}">{{ page }}</a>
+                      </li>
+                    {% else %}
+                      <li class="page-item active">
+                        <span class="page-link">{{ page }}</span>
+                      </li>
+                    {% endif %}
+                  {% else %}
+                    <li class="page-item disabled">
+                      <span class="page-link">...</span>
+                    </li>
+                  {% endif %}
+                {% endfor %}
+
+                {% if alerts.has_next %}
+                  <li class="page-item">
+                    <a class="page-link" href="{{ url_for('home_blueprint.maintenance_alerts', page=alerts.next_num,
+                       cliente_nome=cliente_nome, status=status, prioridade=prioridade, vencidos=vencidos) }}">Próximo</a>
+                  </li>
+                {% endif %}
+              </ul>
+            </nav>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+{% endblock content %}
+
+<!-- Specific Page JS goes HERE  -->
+{% block javascripts %}
+<script>
+function viewAlert(id) {
+    // Implementar modal ou redirecionamento para ver detalhes
+    alert('Ver detalhes do aviso #' + id);
+}
+
+function updateStatus(id, status) {
+    if (confirm('Tem certeza que deseja alterar o status deste aviso?')) {
+        fetch(`/api/maintenance-alert/${id}/status`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ status: status })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Erro ao atualizar status: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Erro ao atualizar status');
+        });
+    }
+}
+</script>
+{% endblock javascripts %} 

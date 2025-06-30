@@ -1,0 +1,215 @@
+{% extends "layouts/base.html" %}
+
+{% block title %} Nova Intervenção {% endblock %} 
+
+<!-- Specific Page CSS goes HERE  -->
+{% block stylesheets %}{% endblock stylesheets %}
+
+{% block content %}
+
+  <div class="row">
+    <div class="col-md-12">
+      <div class="card">
+        <div class="card-header">
+          <div class="row">
+            <div class="col-8">
+              <h4 class="card-title">Nova Intervenção / Manutenção</h4>
+            </div>
+            <div class="col-4 text-right">
+              <a href="{{ url_for('home_blueprint.interventions_list') }}" class="btn btn-default btn-sm">
+                <i class="fas fa-arrow-left"></i> Voltar
+              </a>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          {% if error %}
+            <div class="alert alert-danger">{{ error }}</div>
+          {% endif %}
+
+          <form method="post">
+            <!-- Dados Básicos -->
+            <div class="row">
+              <div class="col-md-12">
+                <h6 class="heading-small text-muted mb-4">📋 Dados da Intervenção</h6>
+              </div>
+            </div>
+            
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>Cliente *</label>
+                  <select class="form-control" name="cliente_id" required>
+                    <option value="">Selecione um cliente</option>
+                    {% for customer in customers %}
+                      <option value="{{ customer.id }}">{{ customer.nome_razao_social }} ({{ customer.nif }})</option>
+                    {% endfor %}
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="form-group">
+                  <label>Data e Hora *</label>
+                  <input type="datetime-local" class="form-control" name="data_intervencao" required>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="form-group">
+                  <label>Status</label>
+                  <select class="form-control" name="status">
+                    <option value="concluida">Concluída</option>
+                    <option value="pendente">Pendente</option>
+                    <option value="cancelada">Cancelada</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Morada da Obra -->
+            <div class="row">
+              <div class="col-md-12">
+                <h6 class="heading-small text-muted mb-4 mt-4">📍 Morada da Obra</h6>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-8">
+                <div class="form-group">
+                  <label>Morada da Obra *</label>
+                  <input type="text" class="form-control" name="morada_obra" required 
+                         placeholder="Endereço completo da obra">
+                </div>
+              </div>
+              <div class="col-md-2">
+                <div class="form-group">
+                  <label>Cidade</label>
+                  <input type="text" class="form-control" name="cidade_obra">
+                </div>
+              </div>
+              <div class="col-md-2">
+                <div class="form-group">
+                  <label>Código Postal</label>
+                  <input type="text" class="form-control" name="codigo_postal_obra">
+                </div>
+              </div>
+            </div>
+
+            <!-- Serviço Executado -->
+            <div class="row">
+              <div class="col-md-12">
+                <h6 class="heading-small text-muted mb-4 mt-4">🔧 Serviço Executado</h6>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label>Tipo de Serviço</label>
+                  <select class="form-control" name="tipo_servico">
+                    <option value="">Selecione o tipo</option>
+                    <option value="Manutenção">Manutenção</option>
+                    <option value="Instalação">Instalação</option>
+                    <option value="Reparação">Reparação</option>
+                    <option value="Inspeção">Inspeção</option>
+                    <option value="Certificação">Certificação</option>
+                    <option value="Outro">Outro</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label>Técnico Responsável</label>
+                  <input type="text" class="form-control" name="tecnico_responsavel" 
+                         placeholder="Nome do técnico">
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-12">
+                <div class="form-group">
+                  <label>Descrição do Serviço Executado *</label>
+                  <textarea class="form-control" name="servico_executado" rows="4" required
+                            placeholder="Descreva detalhadamente o serviço executado..."></textarea>
+                </div>
+              </div>
+            </div>
+
+            <!-- Observações -->
+            <div class="row">
+              <div class="col-md-12">
+                <div class="form-group">
+                  <label>Observações</label>
+                  <textarea class="form-control" name="observacoes" rows="3"
+                            placeholder="Observações adicionais, materiais utilizados, etc..."></textarea>
+                </div>
+              </div>
+            </div>
+
+            <!-- Próxima Manutenção -->
+            <div class="row">
+              <div class="col-md-12">
+                <h6 class="heading-small text-muted mb-4 mt-4">📅 Próxima Manutenção</h6>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label>Data da Próxima Manutenção</label>
+                  <input type="date" class="form-control" name="proxima_manutencao">
+                  <small class="form-text text-muted">Será criado automaticamente um aviso de manutenção</small>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label>Intervalo de Manutenção (meses)</label>
+                  <select class="form-control" name="intervalo_manutencao">
+                    <option value="">Sem repetição</option>
+                    <option value="3">3 meses</option>
+                    <option value="6">6 meses</option>
+                    <option value="12">12 meses</option>
+                    <option value="24">24 meses</option>
+                  </select>
+                  <small class="form-text text-muted">Para manutenções periódicas</small>
+                </div>
+              </div>
+            </div>
+
+            <div class="row mt-4">
+              <div class="col-md-12">
+                <button type="submit" class="btn btn-primary">
+                  <i class="fas fa-save"></i> Salvar Intervenção
+                </button>
+                <a href="{{ url_for('home_blueprint.interventions_list') }}" class="btn btn-secondary">
+                  Cancelar
+                </a>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+{% endblock content %}
+
+<!-- Specific Page JS goes HERE  -->
+{% block javascripts %}
+<script>
+// Definir data/hora atual como padrão
+document.addEventListener('DOMContentLoaded', function() {
+    const now = new Date();
+    const dateInput = document.querySelector('input[name="data_intervencao"]');
+    if (dateInput && !dateInput.value) {
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        
+        dateInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+    }
+});
+</script>
+{% endblock javascripts %} 
