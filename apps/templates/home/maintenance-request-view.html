@@ -1,0 +1,285 @@
+{% extends "layouts/base.html" %}
+
+{% block title %} Solicitação #{{ request_obj.id }} {% endblock %}
+
+{% block content %}
+<div class="content">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="title">Solicitação de Manutenção #{{ request_obj.id }}</h5>
+                        <div>
+                            <a href="{{ url_for('home_blueprint.maintenance_requests') }}" class="btn btn-secondary btn-sm">
+                                <i class="fas fa-arrow-left me-2"></i> Voltar
+                            </a>
+                            {% if request_obj.status == 'pendente' %}
+                                <button type="button" class="btn btn-primary btn-sm ms-2" onclick="updateStatus('agendado')">
+                                    <i class="fas fa-calendar-check me-2"></i> Marcar como Agendado
+                                </button>
+                            {% elif request_obj.status == 'agendado' %}
+                                <button type="button" class="btn btn-success btn-sm ms-2" onclick="updateStatus('concluido')">
+                                    <i class="fas fa-check me-2"></i> Marcar como Concluído
+                                </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Informações Básicas -->
+                        <div class="col-md-6">
+                            <h6 class="heading-small text-muted mb-4">👤 Dados do Solicitante</h6>
+                            
+                            <div class="form-group">
+                                <label>Nome</label>
+                                <p class="form-control-static">{{ request_obj.nome }}</p>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Email</label>
+                                <p class="form-control-static">
+                                    <a href="mailto:{{ request_obj.email }}" class="text-primary">{{ request_obj.email }}</a>
+                                </p>
+                            </div>
+                            
+                            {% if request_obj.telefone %}
+                            <div class="form-group">
+                                <label>Telefone</label>
+                                <p class="form-control-static">
+                                    <a href="tel:{{ request_obj.telefone }}" class="text-primary">{{ request_obj.telefone }}</a>
+                                </p>
+                            </div>
+                            {% endif %}
+                            
+                            {% if request_obj.nif %}
+                            <div class="form-group">
+                                <label>NIF</label>
+                                <p class="form-control-static">{{ request_obj.nif }}</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Status e Datas -->
+                        <div class="col-md-6">
+                            <h6 class="heading-small text-muted mb-4">📊 Status e Datas</h6>
+                            
+                            <div class="form-group">
+                                <label>Status</label>
+                                <p>
+                                    <span class="badge badge-{{ 'warning' if request_obj.status == 'pendente' 
+                                        else 'info' if request_obj.status == 'agendado' 
+                                        else 'success' if request_obj.status == 'concluido'
+                                        else 'danger' }} badge-lg">
+                                        {{ request_obj.status.title() }}
+                                    </span>
+                                </p>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Data da Solicitação</label>
+                                <p class="form-control-static">{{ request_obj.data_solicitacao.strftime('%d/%m/%Y às %H:%M') }}</p>
+                            </div>
+                            
+                            {% if request_obj.data_preferida %}
+                            <div class="form-group">
+                                <label>Data Preferida</label>
+                                <p class="form-control-static">{{ request_obj.data_preferida.strftime('%d/%m/%Y') }}</p>
+                            </div>
+                            {% endif %}
+                            
+                            {% if request_obj.periodo_preferido %}
+                            <div class="form-group">
+                                <label>Período Preferido</label>
+                                <p class="form-control-static">{{ request_obj.periodo_preferido }}</p>
+                            </div>
+                            {% endif %}
+                            
+                            {% if request_obj.cliente %}
+                            <div class="form-group">
+                                <label>Cliente Vinculado</label>
+                                <p>
+                                    <a href="{{ url_for('home_blueprint.customer_details', id=request_obj.cliente.id) }}" class="text-primary">
+                                        <i class="fas fa-user me-2"></i>{{ request_obj.cliente.nome_razao_social }}
+                                    </a>
+                                </p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <div class="row">
+                        <!-- Serviço Solicitado -->
+                        <div class="col-md-6">
+                            <h6 class="heading-small text-muted mb-4">🔧 Serviço Solicitado</h6>
+                            
+                            <div class="form-group">
+                                <label>Tipo de Serviço</label>
+                                <p class="form-control-static">{{ request_obj.tipo_servico }}</p>
+                            </div>
+                            
+                            {% if request_obj.descricao_problema %}
+                            <div class="form-group">
+                                <label>Descrição do Problema</label>
+                                <div class="card bg-secondary">
+                                    <div class="card-body">
+                                        <p class="form-control-static mb-0">{{ request_obj.descricao_problema }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Localização -->
+                        <div class="col-md-6">
+                            <h6 class="heading-small text-muted mb-4">📍 Localização do Serviço</h6>
+                            
+                            <div class="form-group">
+                                <label>Morada</label>
+                                <p class="form-control-static">{{ request_obj.morada_servico }}</p>
+                            </div>
+                            
+                            {% if request_obj.cidade %}
+                            <div class="form-group">
+                                <label>Cidade</label>
+                                <p class="form-control-static">{{ request_obj.cidade }}</p>
+                            </div>
+                            {% endif %}
+                            
+                            {% if request_obj.codigo_postal %}
+                            <div class="form-group">
+                                <label>Código Postal</label>
+                                <p class="form-control-static">{{ request_obj.codigo_postal }}</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    {% if request_obj.observacoes %}
+                    <hr class="my-4">
+                    
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h6 class="heading-small text-muted mb-4">📝 Observações</h6>
+                            <div class="card bg-secondary">
+                                <div class="card-body">
+                                    <p class="form-control-static mb-0">{{ request_obj.observacoes }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <hr class="my-4">
+                    
+                    <!-- Informações Técnicas -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h6 class="heading-small text-muted mb-4">🔍 Informações Técnicas</h6>
+                            
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <small class="text-muted">IP de Origem:</small>
+                                    <p class="form-control-static">{{ request_obj.ip_origem or 'N/A' }}</p>
+                                </div>
+                                <div class="col-md-4">
+                                    <small class="text-muted">Prioridade:</small>
+                                    <p class="form-control-static">{{ request_obj.prioridade.title() }}</p>
+                                </div>
+                                <div class="col-md-4">
+                                    <small class="text-muted">User Agent:</small>
+                                    <p class="form-control-static small">{{ request_obj.user_agent[:50] + '...' if request_obj.user_agent and request_obj.user_agent|length > 50 else request_obj.user_agent or 'N/A' }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <!-- Ações -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="btn-group" role="group">
+                                {% if request_obj.status != 'cancelado' %}
+                                    <button type="button" class="btn btn-danger" onclick="updateStatus('cancelado')">
+                                        <i class="fas fa-times me-2"></i> Cancelar Solicitação
+                                    </button>
+                                {% endif %}
+                                
+                                {% if not request_obj.cliente and request_obj.nif %}
+                                    <button type="button" class="btn btn-info ms-2" onclick="createCustomer()">
+                                        <i class="fas fa-user-plus me-2"></i> Criar Cliente
+                                    </button>
+                                {% endif %}
+                                
+                                <button type="button" class="btn btn-success ms-2" onclick="createIntervention()">
+                                    <i class="fas fa-tools me-2"></i> Criar Intervenção
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function updateStatus(newStatus) {
+    const statusNames = {
+        'pendente': 'Pendente',
+        'agendado': 'Agendado', 
+        'concluido': 'Concluído',
+        'cancelado': 'Cancelado'
+    };
+    
+    if (confirm(`Tem certeza que deseja alterar o status para "${statusNames[newStatus]}"?`)) {
+        fetch(`/api/maintenance-request/{{ request_obj.id }}/status`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ status: newStatus })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Erro ao atualizar status: ' + (data.error || 'Erro desconhecido'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Erro ao atualizar status');
+        });
+    }
+}
+
+function createCustomer() {
+    if (confirm('Deseja criar um novo cliente com os dados desta solicitação?')) {
+        // Redirecionar para formulário de cliente com dados pré-preenchidos
+        const params = new URLSearchParams({
+            nome: '{{ request_obj.nome }}',
+            email: '{{ request_obj.email }}',
+            telefone: '{{ request_obj.telefone or "" }}',
+            nif: '{{ request_obj.nif or "" }}',
+            cidade: '{{ request_obj.cidade or "" }}',
+            codigo_postal: '{{ request_obj.codigo_postal or "" }}'
+        });
+        
+        window.location.href = `/customer/new?${params.toString()}`;
+    }
+}
+
+function createIntervention() {
+    if (confirm('Deseja criar uma nova intervenção baseada nesta solicitação?')) {
+        // Redirecionar para formulário de intervenção
+        window.location.href = `/intervention/new?request_id={{ request_obj.id }}`;
+    }
+}
+</script>
+{% endblock content %} 

@@ -2,215 +2,186 @@
 
 {% block title %} Solicitações de Manutenção {% endblock %} 
 
-<!-- Specific Page CSS goes HERE  -->
-{% block stylesheets %}{% endblock stylesheets %}
-
 {% block content %}
-
-  <div class="row">
-    <div class="col-md-12">
-      <div class="card">
-        <div class="card-header">
-          <div class="row">
-            <div class="col-8">
-              <h4 class="card-title"> Solicitações via Site/API Externa</h4>
-              <p class="card-category">Solicitações recebidas de clientes via formulário do site</p>
-            </div>
-            <div class="col-4 text-right">
-              <span class="badge badge-info">API Endpoint: /api/maintenance-request</span>
-            </div>
-          </div>
-        </div>
-        <div class="card-body">
-          <!-- Filtros -->
-          <div class="row mb-4">
-            <div class="col-md-12">
-              <form method="get" class="row">
-                <div class="col-md-4">
-                  <label>Nome</label>
-                  <input type="text" class="form-control form-control-sm" name="nome" 
-                         value="{{ nome }}" placeholder="Nome do solicitante">
+<div class="content">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="title">Solicitações via Site/API Externa</h5>
+                            <p class="card-category">Solicitações recebidas de clientes via formulário do site</p>
+                        </div>
+                        <span class="badge badge-info">API: /api/maintenance-request</span>
+                    </div>
                 </div>
-                <div class="col-md-3">
-                  <label>Status</label>
-                  <select class="form-control form-control-sm" name="status">
-                    <option value="">Todos</option>
-                    <option value="pendente" {% if status == 'pendente' %}selected{% endif %}>Pendente</option>
-                    <option value="agendado" {% if status == 'agendado' %}selected{% endif %}>Agendado</option>
-                    <option value="concluido" {% if status == 'concluido' %}selected{% endif %}>Concluído</option>
-                    <option value="cancelado" {% if status == 'cancelado' %}selected{% endif %}>Cancelado</option>
-                  </select>
-                </div>
-                <div class="col-md-4">
-                  <label>Tipo de Serviço</label>
-                  <input type="text" class="form-control form-control-sm" name="tipo_servico" 
-                         value="{{ tipo_servico }}" placeholder="Tipo de serviço">
-                </div>
-                <div class="col-md-1">
-                  <label>&nbsp;</label>
-                  <button type="submit" class="btn btn-info btn-sm form-control">
-                    <i class="fas fa-search"></i>
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
+                <div class="card-body">
+                    <!-- Filtros -->
+                    <form method="get" class="mb-4">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>Nome</label>
+                                    <input type="text" class="form-control" name="nome" 
+                                           value="{{ nome }}" placeholder="Nome do solicitante">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>Status</label>
+                                    <select class="form-control" name="status">
+                                        <option value="">Todos</option>
+                                        <option value="pendente" {% if status == 'pendente' %}selected{% endif %}>Pendente</option>
+                                        <option value="agendado" {% if status == 'agendado' %}selected{% endif %}>Agendado</option>
+                                        <option value="concluido" {% if status == 'concluido' %}selected{% endif %}>Concluído</option>
+                                        <option value="cancelado" {% if status == 'cancelado' %}selected{% endif %}>Cancelado</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>Tipo de Serviço</label>
+                                    <input type="text" class="form-control" name="tipo_servico" 
+                                           value="{{ tipo_servico }}" placeholder="Tipo de serviço">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-search me-2"></i>Filtrar
+                                </button>
+                                <a href="{{ url_for('home_blueprint.maintenance_requests') }}" class="btn btn-secondary btn-sm">
+                                    <i class="fas fa-times me-2"></i>Limpar Filtros
+                                </a>
+                            </div>
+                        </div>
+                    </form>
 
-          <!-- Tabela -->
-          <div class="table-responsive">
-            <table class="table tablesorter">
-              <thead class="text-primary">
-                <tr>
-                  <th>Data</th>
-                  <th>Nome</th>
-                  <th>Email/Telefone</th>
-                  <th>Tipo Serviço</th>
-                  <th>Cidade</th>
-                  <th>Status</th>
-                  <th>Cliente?</th>
-                  <th class="text-center">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% if requests.items %}
-                  {% for req in requests.items %}
-                    <tr>
-                      <td>{{ req.data_solicitacao.strftime('%d/%m/%Y %H:%M') }}</td>
-                      <td>{{ req.nome }}</td>
-                      <td>
-                        {{ req.email }}<br>
-                        <small class="text-muted">{{ req.telefone or '' }}</small>
-                      </td>
-                      <td>{{ req.tipo_servico }}</td>
-                      <td>{{ req.cidade or '-' }}</td>
-                      <td>
-                        {% if req.status == 'pendente' %}
-                          <span class="badge badge-warning">Pendente</span>
-                        {% elif req.status == 'agendado' %}
-                          <span class="badge badge-info">Agendado</span>
-                        {% elif req.status == 'concluido' %}
-                          <span class="badge badge-success">Concluído</span>
-                        {% else %}
-                          <span class="badge badge-danger">Cancelado</span>
-                        {% endif %}
-                      </td>
-                      <td>
-                        {% if req.cliente %}
-                          <span class="badge badge-success" title="Cliente cadastrado">
-                            <i class="fas fa-check"></i> {{ req.cliente.nome_razao_social[:20] }}...
-                          </span>
-                        {% else %}
-                          <span class="badge badge-secondary" title="Não cadastrado">
-                            <i class="fas fa-times"></i> Novo
-                          </span>
-                        {% endif %}
-                      </td>
-                      <td class="text-center">
-                        <a href="{{ url_for('home_blueprint.view_maintenance_request', id=req.id) }}" 
-                           class="btn btn-link btn-icon btn-sm" title="Ver detalhes">
-                          <i class="fas fa-eye"></i>
-                        </a>
-                        {% if req.status == 'pendente' %}
-                          <button type="button" class="btn btn-link btn-icon btn-sm text-info" 
-                                  title="Marcar como agendado" onclick="updateRequestStatus({{ req.id }}, 'agendado')">
-                            <i class="fas fa-calendar-check"></i>
-                          </button>
-                        {% endif %}
-                      </td>
-                    </tr>
-                  {% endfor %}
-                {% else %}
-                  <tr>
-                    <td colspan="8" class="text-center">Nenhuma solicitação encontrada</td>
-                  </tr>
-                {% endif %}
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Paginação -->
-          {% if requests.pages > 1 %}
-            <nav aria-label="Page navigation">
-              <ul class="pagination justify-content-center">
-                {% if requests.has_prev %}
-                  <li class="page-item">
-                    <a class="page-link" href="{{ url_for('home_blueprint.maintenance_requests', page=requests.prev_num, 
-                       nome=nome, status=status, tipo_servico=tipo_servico) }}">Anterior</a>
-                  </li>
-                {% endif %}
-
-                {% for page in requests.iter_pages() %}
-                  {% if page %}
-                    {% if page != requests.page %}
-                      <li class="page-item">
-                        <a class="page-link" href="{{ url_for('home_blueprint.maintenance_requests', page=page,
-                           nome=nome, status=status, tipo_servico=tipo_servico) }}">{{ page }}</a>
-                      </li>
-                    {% else %}
-                      <li class="page-item active">
-                        <span class="page-link">{{ page }}</span>
-                      </li>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Nome</th>
+                                    <th>Contato</th>
+                                    <th>Tipo Serviço</th>
+                                    <th>Status</th>
+                                    <th>Cliente?</th>
+                                    <th class="text-right">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if requests.items %}
+                                    {% for req in requests.items %}
+                                    <tr>
+                                        <td>{{ req.data_solicitacao.strftime('%d/%m/%Y %H:%M') }}</td>
+                                        <td>
+                                            <div>
+                                                <span class="d-block">{{ req.nome }}</span>
+                                                <small class="text-muted">{{ req.cidade or 'Cidade não informada' }}</small>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div>
+                                                <span class="d-block">{{ req.email }}</span>
+                                                <small class="text-muted">{{ req.telefone or 'Tel. não informado' }}</small>
+                                            </div>
+                                        </td>
+                                        <td>{{ req.tipo_servico }}</td>
+                                        <td>
+                                            <span class="badge badge-{{ 'warning' if req.status == 'pendente' 
+                                                else 'info' if req.status == 'agendado' 
+                                                else 'success' if req.status == 'concluido'
+                                                else 'danger' }}">
+                                                {{ req.status }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if req.cliente %}
+                                                <span class="badge badge-success" title="Cliente cadastrado">
+                                                    <i class="fas fa-check"></i> Sim
+                                                </span>
+                                            {% else %}
+                                                <span class="badge badge-secondary" title="Não cadastrado">
+                                                    <i class="fas fa-times"></i> Novo
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-right">
+                                            <a href="{{ url_for('home_blueprint.view_maintenance_request', id=req.id) }}" 
+                                               class="btn btn-link" title="Ver detalhes">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            {% if req.status == 'pendente' %}
+                                                <button type="button" class="btn btn-link text-info" title="Marcar como agendado">
+                                                    <i class="fas fa-calendar-check"></i>
+                                                </button>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="7" class="text-center">Nenhuma solicitação encontrada</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    {% if requests.pages > 1 %}
+                    <div class="d-flex justify-content-center mt-3">
+                        <nav aria-label="Page navigation">
+                            <ul class="pagination">
+                                {% if requests.has_prev %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('home_blueprint.maintenance_requests', page=requests.prev_num, 
+                                       nome=nome, status=status, tipo_servico=tipo_servico) }}">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </a>
+                                </li>
+                                {% endif %}
+                                
+                                {% for page_num in requests.iter_pages() %}
+                                    {% if page_num %}
+                                        <li class="page-item {{ 'active' if page_num == requests.page else '' }}">
+                                            <a class="page-link" href="{{ url_for('home_blueprint.maintenance_requests', page=page_num,
+                                               nome=nome, status=status, tipo_servico=tipo_servico) }}">{{ page_num }}</a>
+                                        </li>
+                                    {% else %}
+                                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if requests.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('home_blueprint.maintenance_requests', page=requests.next_num,
+                                       nome=nome, status=status, tipo_servico=tipo_servico) }}">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </a>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    </div>
                     {% endif %}
-                  {% else %}
-                    <li class="page-item disabled">
-                      <span class="page-link">...</span>
-                    </li>
-                  {% endif %}
-                {% endfor %}
 
-                {% if requests.has_next %}
-                  <li class="page-item">
-                    <a class="page-link" href="{{ url_for('home_blueprint.maintenance_requests', page=requests.next_num,
-                       nome=nome, status=status, tipo_servico=tipo_servico) }}">Próximo</a>
-                  </li>
-                {% endif %}
-              </ul>
-            </nav>
-          {% endif %}
-
-          <!-- Info sobre API -->
-          <div class="row mt-5">
-            <div class="col-md-12">
-              <div class="alert alert-info">
-                <h5><i class="fas fa-info-circle"></i> Integração com Site Externo</h5>
-                <p><strong>Endpoint:</strong> <code>POST /api/maintenance-request</code></p>
-                <p><strong>Campos obrigatórios:</strong> nome, email, morada_servico, tipo_servico</p>
-                <p><strong>Campos opcionais:</strong> telefone, nif, cidade, codigo_postal, descricao_problema, data_preferida, periodo_preferido</p>
-              </div>
+                    <!-- Info sobre API -->
+                    <div class="row mt-5">
+                        <div class="col-md-12">
+                            <div class="alert alert-info">
+                                <h5><i class="fas fa-info-circle"></i> Integração com Site Externo</h5>
+                                <p><strong>Endpoint:</strong> <code>POST /api/maintenance-request</code></p>
+                                <p><strong>Campos obrigatórios:</strong> nome, email, morada_servico, tipo_servico</p>
+                                <p><strong>Campos opcionais:</strong> telefone, nif, cidade, codigo_postal, descricao_problema, data_preferida, periodo_preferido</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-          </div>
         </div>
-      </div>
     </div>
-  </div>
-
-{% endblock content %}
-
-<!-- Specific Page JS goes HERE  -->
-{% block javascripts %}
-<script>
-function updateRequestStatus(id, status) {
-    if (confirm('Tem certeza que deseja alterar o status desta solicitação?')) {
-        fetch('/api/maintenance-request/' + id + '/status', {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ status: status })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                location.reload();
-            } else {
-                alert('Erro ao atualizar status: ' + data.error);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Erro ao atualizar status');
-        });
-    }
-}
-</script>
-{% endblock javascripts %} 
+</div>
+{% endblock content %} 

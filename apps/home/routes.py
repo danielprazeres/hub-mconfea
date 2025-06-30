@@ -346,8 +346,12 @@ def interventions_list():
 @blueprint.route('/intervention/new', methods=['GET', 'POST'])
 @login_required
 def new_intervention():
-    from apps.authentication.models import Intervention
+    from apps.authentication.models import Intervention, InterventionPhoto
     from flask_login import current_user
+    import os
+    import uuid
+    from werkzeug.utils import secure_filename
+    from PIL import Image
     
     if request.method == 'POST':
         try:
@@ -373,7 +377,75 @@ def new_intervention():
                 intervention.intervalo_manutencao = int(request.form['intervalo_manutencao'])
             
             db.session.add(intervention)
-            db.session.commit()
+            db.session.flush()  # Para obter o ID da intervenção
+            
+            # Processar fotos enviadas
+            uploaded_files = request.files.getlist('fotos')
+            if uploaded_files and uploaded_files[0].filename:  # Verificar se há arquivos
+                
+                # Configurar diretório de upload
+                upload_folder = os.path.join('apps', 'static', 'uploads', 'interventions')
+                os.makedirs(upload_folder, exist_ok=True)
+                
+                # Obter tipos e descrições das fotos
+                foto_tipos = []
+                foto_descricoes = []
+                
+                # Capturar tipos e descrições das fotos
+                for key in request.form.keys():
+                    if key.startswith('foto_tipos['):
+                        index = int(key.split('[')[1].split(']')[0])
+                        while len(foto_tipos) <= index:
+                            foto_tipos.append('geral')
+                        foto_tipos[index] = request.form[key]
+                    elif key.startswith('foto_descricoes['):
+                        index = int(key.split('[')[1].split(']')[0])
+                        while len(foto_descricoes) <= index:
+                            foto_descricoes.append('')
+                        foto_descricoes[index] = request.form[key]
+                
+                for i, file in enumerate(uploaded_files):
+                    if file and file.filename:
+                        # Validar tipo de arquivo
+                        allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+                        file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+                        
+                        if file_ext not in allowed_extensions:
+                            continue
+                        
+                        # Gerar nome único para o arquivo
+                        unique_filename = f"{uuid.uuid4().hex}_{secure_filename(file.filename)}"
+                        file_path = os.path.join(upload_folder, unique_filename)
+                        
+                        # Salvar arquivo
+                        file.save(file_path)
+                        
+                        # Redimensionar imagem se for muito grande
+                        try:
+                            with Image.open(file_path) as img:
+                                # Redimensionar se largura ou altura > 1920px
+                                if img.width > 1920 or img.height > 1920:
+                                    img.thumbnail((1920, 1920), Image.Resampling.LANCZOS)
+                                    img.save(file_path, optimize=True, quality=85)
+                        except Exception as img_error:
+                            print(f"Erro ao processar imagem: {img_error}")
+                        
+                        # Obter tamanho do arquivo
+                        file_size = os.path.getsize(file_path)
+                        
+                        # Criar registro da foto no banco
+                        photo = InterventionPhoto(
+                            intervention_id=intervention.id,
+                            filename=unique_filename,
+                            original_filename=file.filename,
+                            file_path=f'uploads/interventions/{unique_filename}',
+                            file_size=file_size,
+                            tipo_foto=foto_tipos[i] if i < len(foto_tipos) else 'geral',
+                            descricao=foto_descricoes[i] if i < len(foto_descricoes) and foto_descricoes[i] else None,
+                            uploaded_by=current_user.id
+                        )
+                        
+                        db.session.add(photo)
             
             # Criar aviso de manutenção se especificado
             if intervention.proxima_manutencao:
@@ -388,12 +460,27 @@ def new_intervention():
                     intervalo_repeticao=intervention.intervalo_manutencao
                 )
                 db.session.add(alert)
-                db.session.commit()
+            
+            db.session.commit()
             
             return redirect(url_for('home_blueprint.view_intervention', id=intervention.id))
             
         except Exception as e:
             db.session.rollback()
+            # Limpar arquivos uploaded em caso de erro
+            try:
+                uploaded_files = request.files.getlist('fotos')
+                if uploaded_files:
+                    upload_folder = os.path.join('apps', 'static', 'uploads', 'interventions')
+                    for file in uploaded_files:
+                        if file and file.filename:
+                            unique_filename = f"{uuid.uuid4().hex}_{secure_filename(file.filename)}"
+                            file_path = os.path.join(upload_folder, unique_filename)
+                            if os.path.exists(file_path):
+                                os.remove(file_path)
+            except:
+                pass
+            
             return render_template('home/intervention-form.html',
                                  customers=Customer.query.all(),
                                  error=f'Erro ao criar intervenção: {str(e)}',
@@ -412,6 +499,16 @@ def view_intervention(id):
     return render_template('home/intervention-view.html',
                          intervention=intervention,
                          segment='interventions')
+
+@blueprint.route('/uploads/interventions/<filename>')
+@login_required
+def uploaded_intervention_photo(filename):
+    """Servir fotos das intervenções com controle de acesso"""
+    import os
+    from flask import send_from_directory
+    
+    upload_folder = os.path.join('apps', 'static', 'uploads', 'interventions')
+    return send_from_directory(upload_folder, filename)
 
 @blueprint.route('/intervention/<int:id>/edit', methods=['GET', 'POST'])
 @login_required
